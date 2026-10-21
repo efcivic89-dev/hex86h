@@ -2122,6 +2122,15 @@ function saveGame(){
     localStorage.setItem(SAVEKEY,JSON.stringify(s));netSave(s);}catch(e){}
 }
 function loadSave(){try{const r=localStorage.getItem(SAVEKEY);return r?JSON.parse(r):null;}catch(e){return null;}}
+/* 画面操作から冒険を始めるとき：重い準備の間も「準備中」の案内を出し続ける */
+function startGameUI(sv,maxMode,cls){
+  let who='';try{botLoadLocal();const on=BOT.list.filter(r=>r.on);if(on.length&&!MP.playing)who='<p style="font-size:13px;color:#7fe8d8">🤖 '+on.map(r=>botEsc(r.name)).join('・')+' を呼び出しています…</p>';}catch(e){}
+  G.prepOv=true;
+  showOverlay('<div class="card" style="text-align:center;min-width:280px"><h2 style="margin-bottom:8px">冒険の準備をしています</h2><div style="font-size:30px;margin:6px 0;animation:spin 1.4s linear infinite;display:inline-block">⚙</div><p style="font-size:13px;color:#cdbf9f">マップを作り、仲間と敵を呼び出しています。<br>端末によって数秒〜数十秒かかります。そのままお待ちください。</p>'+who+'</div>');
+  if(!document.getElementById('spincss')){const st=document.createElement('style');st.id='spincss';st.textContent='@keyframes spin{to{transform:rotate(360deg)}}';document.head.appendChild(st);}
+  const go=()=>{try{startGame(sv,maxMode,cls);}catch(e){G.prepOv=false;hideOverlay();throw e;}};
+  if(typeof requestAnimationFrame==='function')requestAnimationFrame(()=>setTimeout(go,60));else setTimeout(go,60);
+}
 function startGame(sv,maxMode,cls){
   audioInit();P=newPlayer(sv?(sv.cls||'warrior'):cls);G.ally=[];G.wp=new Set(sv&&sv.wp?sv.wp:[]);G.diff=0;G.kills=0;G.maxMode=!!maxMode;G.cid=maxMode?null:((sv&&sv.cid)||netNewId());G.ccre=(sv&&sv.cre)||Date.now();
   if(sv){Object.assign(P,{lvl:sv.lvl,xp:sv.xp,str:sv.str,dex:sv.dex,vit:sv.vit,ene:sv.ene,statPts:sv.statPts,skillPts:sv.skillPts,skills:sv.skills,gold:sv.gold,evi:sv.evi||{},pot:Object.assign({hp:0,mp:0,rj:0,big:0},sv.pot),eq:sv.eq||{},bag:sv.bag,left:sv.left,right:sv.right,fk:sv.fk||P.fk,ms:sv.ms||null,vq:sv.vq||{},alt:sv.alt||{weapon:null,shield:null},sw:sv.sw||0,cls:sv.cls||'warrior'});
@@ -2132,7 +2141,7 @@ function startGame(sv,maxMode,cls){
     const fixIt=it=>{if(it&&!it.t&&BASEMAP[it.base])it.t=BASEMAP[it.base].t;if(it&&it.id>=itemSeq)itemSeq=it.id+1;};
     while(P.bag.length<250)P.bag.push(null);P.stash=Array.isArray(sv.stash)?sv.stash:[];while(P.stash.length<250)P.stash.push(null);for(const it of P.stash)fixIt(it);for(const k in P.eq)fixIt(P.eq[k]);for(const it of P.bag)fixIt(it);fixIt(P.alt.weapon);fixIt(P.alt.shield);}
   if(maxMode)applyMaxMode();
-  recalc();P.hp=P.st.maxhp;P.mp=P.st.maxmp;G.state='play';G.paused=false;hideOverlay();hfiPreload();m3dPreload();
+  recalc();P.hp=P.st.maxhp;P.mp=P.st.maxmp;G.state='play';G.paused=false;if(!G.prepOv)hideOverlay();hfiPreload();m3dPreload();
   enterFloor(sv?sv.floor:1);
   if(maxMode)msg('装備最強モード（セーブなし）','#e2b65f');
   if(!sv&&!maxMode&&MOB.on){msg('左をドラッグで移動 ／ 右下の攻撃ボタンを押し続けて戦う','#e7dcc4');setTimeout(()=>msg('攻撃・技ボタンを押すとスキルを5つから選べます','#e7dcc4'),3200);}else if(!sv&&!maxMode){msg('左クリック: 移動・攻撃 ／ 右クリック: スキル ／ X: 武器セット切替','#e7dcc4');setTimeout(()=>msg('I:持ち物 C:能力 S:スキル Q/W:ポーション H:操作方法','#a29780'),600);}
@@ -7283,6 +7292,7 @@ function ldHero(face,mv,q,swp){
 }
 const LDMSG=['マップを描いています','キャラクターを生成しています','敵を生成しています','闇を深めています'];
 function ldStart(){
+  if(G.prepOv){G.prepOv=false;hideOverlay();}
   if(G.state!=='play'||!P)return;
   try{ldPlan();}catch(e){LD.q=[];LD.n=0;}
   if(!LD.n){LD.on=false;return;}
@@ -11059,8 +11069,8 @@ $('overlay').addEventListener('click',e=>{
   const el=e.target.closest('[data-act]');if(!el)return;audioInit();sfx('click');const a=el.dataset.act;
   if(a==='new'){showClassSelect(false);}
   else if(a==='maxmode'){showClassSelect(true);}
-  else if(a==='cls'){mobAutoFull();startGame(null,el.dataset.m==='1',el.dataset.c);}
-  else if(a==='cont'){mobAutoFull();const sv=loadSave();if(sv)startGame(sv);else showClassSelect(false);}
+  else if(a==='cls'){mobAutoFull();startGameUI(null,el.dataset.m==='1',el.dataset.c);}
+  else if(a==='cont'){mobAutoFull();const sv=loadSave();if(sv)startGameUI(sv);else showClassSelect(false);}
   else if(a==='gfx'){GFX=+el.dataset.n;try{localStorage.setItem('fs_gfx',String(GFX));}catch(e){}resize();if(G.state==='title')showTitle();else if(G.paused)showPause();}
   else if(a==='vz'){VZ=+el.dataset.n;try{localStorage.setItem('fs_vz3',String(VZ));}catch(e){}resize();if(G.state==='title')showTitle();else if(G.paused)showPause();}
   else if(a==='monx'){MONX=+el.dataset.n;try{localStorage.setItem('fs_monx',String(MONX));}catch(e){}if(G.state==='title')showTitle();else if(G.paused)showPause();}
@@ -11364,7 +11374,7 @@ function netAct(a,el){
   else if(a==='n_retry')netOnUser(NET.user);
   else if(a==='n_quest')qShowTitle();
   else if(a==='n_board')showBoard();
-  else if(a==='n_load'){const id=el.dataset.id,c=NET.chars&&NET.chars[id];if(c){NET.form=false;startGame(netToSv(c,id));}}
+  else if(a==='n_load'){const id=el.dataset.id,c=NET.chars&&NET.chars[id];if(c){NET.form=false;startGameUI(netToSv(c,id));}}
   else if(a==='n_del'){const id=el.dataset.id;
     if(NET.arm!==id){NET.arm=id;showChars();}
     else{NET.arm=null;NET.db.ref('players/'+NET.user.uid+'/characters/'+id).remove().then(showChars,e=>showOverlay(`<div class="card"><h2>削除失敗</h2><p>${nEsc(netErr(e))}</p><div class="btns"><button class="btn ghost" data-act="back">戻る</button></div></div>`));}}
