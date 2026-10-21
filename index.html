@@ -7292,10 +7292,9 @@ function ldHero(face,mv,q,swp){
 }
 const LDMSG=['マップを描いています','キャラクターを生成しています','敵を生成しています','闇を深めています'];
 function ldStart(){
-  if(G.prepOv){G.prepOv=false;hideOverlay();}
-  if(G.state!=='play'||!P)return;
+  if(G.state!=='play'||!P){if(G.prepOv){G.prepOv=false;hideOverlay();}return;}
   try{ldPlan();}catch(e){LD.q=[];LD.n=0;}
-  if(!LD.n){LD.on=false;return;}
+  if(!LD.n){LD.on=false;if(G.prepOv){G.prepOv=false;hideOverlay();}return;}
   LD.on=true;G.loading=true;LD.t0=performance.now();LD.done=0;LD.ph=[0,0,0,0];
   for(const t of LD.q)LD.ph[t.ph]++;
 }
@@ -13350,7 +13349,8 @@ function frame(ts){
    if(G.state==='play'&&A.t>1.2&&A.n>40&&!QLOCK){A.t=0;A.cd-=1.2;
      if(A.e>.045&&QS>.9&&A.cd<=0&&A.n>420){QS=Math.max(.9,+(QS-.1).toFixed(2));A.cd=12;A.n=0;resize();}
      else if(A.e>.04&&QS<=.8&&!window.__LOWFX&&A.n>420){window.__LOWFX=1;A.n=0;}}}
-  if(G.loading){ldStep();if(G.loading){ldDraw();return;}}
+  if(G.loading){ldStep();if(G.loading){ldDraw();if(G.prepOv){G.prepOv=false;hideOverlay();}return;}}
+  if(G.prepOv&&G.state==='play'){G.prepOv=false;hideOverlay();}
   if(G.state==='play'&&P&&!G.paused&&!G.loading){const _u0=performance.now();if(!P.dead){update(dt);G.ut=(G.ut||0)*.9+(performance.now()-_u0)*.1;}else{G.t+=dt;updateFx(dt);updateProj(dt);mpTick(dt);}}
   if(UI.dirty&&P)renderPanels();
   mobTick(dt);
