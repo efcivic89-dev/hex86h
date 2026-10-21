@@ -17,6 +17,7 @@ jobs:
             [ -z "$name" ] && continue
             echo "GET $name"
             curl -sfL --retry 3 -o "assets/$name" "$url" || echo "FAIL $name"
+            case "$name" in *.zip) (cd assets && unzip -o -q "$name" && rm -f "$name");; esac
           done < fetch/urls.txt
           ls -la assets
       - name: commit
