@@ -2118,6 +2118,7 @@ const SAVEKEY='fallen-sanctuary-save-v1';
 function saveGame(){
   if(BOT.dirty)botSave();
   if(G.maxMode)return;
+  try{if(P.pet)localStorage.setItem('fs-petcfg',JSON.stringify(P.pet));}catch(e){}
   try{const s={pet:P.pet,lvl:P.lvl,xp:P.xp,str:P.str,dex:P.dex,vit:P.vit,ene:P.ene,statPts:P.statPts,skillPts:P.skillPts,skills:P.skills,gold:P.gold,pot:P.pot,evi:P.evi,eq:P.eq,alt:P.alt,sw:P.sw,cls:P.cls,bag:P.bag,stash:P.stash||[],left:P.left,right:P.right,fk:P.fk,ms:P.ms,diff:G.diff,floor:G.floor,kills:G.kills,wp:Array.from(G.wp),vq:P.vq||{},cid:G.cid||null,cre:G.ccre||null};
     localStorage.setItem(SAVEKEY,JSON.stringify(s));netSave(s);}catch(e){}
 }
@@ -2134,7 +2135,7 @@ function startGameUI(sv,maxMode,cls){
 function startGame(sv,maxMode,cls){
   audioInit();P=newPlayer(sv?(sv.cls||'warrior'):cls);G.ally=[];G.wp=new Set(sv&&sv.wp?sv.wp:[]);G.diff=0;G.kills=0;G.maxMode=!!maxMode;G.cid=maxMode?null:((sv&&sv.cid)||netNewId());G.ccre=(sv&&sv.cre)||Date.now();
   if(sv){Object.assign(P,{lvl:sv.lvl,xp:sv.xp,str:sv.str,dex:sv.dex,vit:sv.vit,ene:sv.ene,statPts:sv.statPts,skillPts:sv.skillPts,skills:sv.skills,gold:sv.gold,evi:sv.evi||{},pot:Object.assign({hp:0,mp:0,rj:0,big:0},sv.pot),eq:sv.eq||{},bag:sv.bag,left:sv.left,right:sv.right,fk:sv.fk||P.fk,ms:sv.ms||null,vq:sv.vq||{},alt:sv.alt||{weapon:null,shield:null},sw:sv.sw||0,cls:sv.cls||'warrior'});
-    G.diff=sv.diff;G.kills=sv.kills||0;if(sv.pet)P.pet=sv.pet;
+    G.diff=sv.diff;G.kills=sv.kills||0;if(sv.pet)P.pet=sv.pet;else{try{const pc=JSON.parse(localStorage.getItem('fs-petcfg')||'null');if(pc&&pc.f)P.pet=pc;}catch(e){}}
     if(!sv.cls){const tr=CLS.warrior.flat;for(const id in P.skills){if(tr.indexOf(id)<0){P.skillPts+=P.skills[id];delete P.skills[id];}}}
     const okSk=id=>id==='attack'||(P.skills[id]>0&&SK[id]&&SK[id].kind!=='passive');
     if(!okSk(P.left))P.left='attack';if(!okSk(P.right))P.right=ORD().find(id=>okSk(id))||'attack';
@@ -11777,20 +11778,98 @@ function evFire(kind){
     if(n){msg('倒れた者たちが、起き上がる…','#9a7ac8');G.shake=Math.max(G.shake,.25);tone('sine',70,40,.9,.1);}else return false;}
   else if(kind==='shriek'){const a=Math.random()*6.283;const x=P.x+Math.cos(a)*6,y=P.y+Math.sin(a)*6;G.rings.push({x,y,r:0,max:5,col:'#c8a0ff',t:0,q:.5,st:'shock'});pulse(x,y,'200,160,255',320,.5,1);tone('sawtooth',1500,300,.7,.06);msg('どこかで悲鳴が響いた','#c8a0ff');G.fl=.18;
     const fam=evFamily();evSpawn(fam[0],7,a,{spdM:1.3});evSpawn(fam[fam.length-1],8,a+1,{spdM:1.3});}
-  else return ev3Fire(kind);
+  else{const r5=ev5Fire(kind);return r5!==undefined?r5:ev3Fire(kind);}
   return true;
 }
+/*EV5-BEGIN*/
+/* ===== ランダムイベント追加：良い事も悪い事も不意に起きる ===== */
+const EV5={k:'',goblin:null,bounty:null,spring:null,met:null,rain:null,wander:null};
+function ev5Reset(){EV5.goblin=EV5.bounty=EV5.spring=EV5.met=EV5.rain=EV5.wander=null;}
+const EV5_KINDS=['goblin','bounty','spring','meteor','goldrain','blessing','stampede','lostgift','wanderer'];
+function ev5Fire(kind){
+  if(EV5_KINDS.indexOf(kind)<0)return undefined;
+  if(P.vil)return false;const fam=evFamily();
+  if(kind==='goblin'){if(EV5.goblin)return false;
+    const m=evSpawn(MT.imp?'imp':fam[0],9,Math.random()*6.283,{champ:true,spdM:1,hpM:1.3});if(!m)return false;
+    m.name='宝担ぎの小鬼';m.spd=0;m.dmg=[1,1];m.rng=0;m.noLoot=1;EV5.goblin={m,t:0};
+    msg('金貨袋を担いだ小鬼が、こちらを見て逃げ出した！ 捕まえろ！','#ffd070');pulse(m.x,m.y,'255,210,100',200,.6,.8);tone('triangle',900,1300,.3,.08);return true;}
+  if(kind==='bounty'){if(EV5.bounty)return false;
+    const m=evSpawn(fam[(Math.random()*fam.length)|0],13,Math.random()*6.283,{champ:true,hpM:3,dmgM:1.25,spdM:1.1});if(!m)return false;
+    m.name='賞金首ゲルド';EV5.bounty={m};msg('賞金首の気配がする… 倒せば褒美が出るという','#ffb060');dreadSting();pulse(m.x,m.y,'255,160,60',260,.6,1);return true;}
+  if(kind==='spring'){if(EV5.spring)return false;const f=ev4Near(5,9);if(!f)return false;
+    EV5.spring={x:f[0],y:f[1],t:0,tk:0};msg('近くに癒しの泉が湧いた！ 傍に立てば傷が癒える（25秒）','#8fd8ff');tone('sine',500,900,.8,.08);pulse(f[0],f[1],'120,200,255',300,.8,1);return true;}
+  if(kind==='meteor'){if(EV5.met||G.cave)return false;
+    EV5.met={t:0,nx:0,list:[]};msg('空が赤く染まった…流星が降ってくる！ 足元の赤い光から離れろ','#ff8a5a');tone('sine',60,35,1.6,.14);G.fl=.2;G.flc='200,60,30';return true;}
+  if(kind==='goldrain'){if(EV5.rain)return false;EV5.rain={t:0,nx:0};msg('黄金の雨が降ってきた！ 拾え！','#ffe46e');tone('triangle',1100,1700,.5,.07);return true;}
+  if(kind==='blessing'){const id=['shr_haste','shr_power','shr_guard'][(Math.random()*3)|0];
+    P.buf[id]=75;recalc();healSelf(P.st.maxhp*.4,true);P.mp=Math.min(P.st.maxmp,P.mp+P.st.maxmp*.4);
+    msg('通りがかった妖精が祝福をくれた：'+(SK[id]?SK[id].n:'加護')+'（75秒）','#ffd0f0');pulse(P.x,P.y,'255,200,240',300,.8,1.1);G.pillars.push({x:P.x,y:P.y,t:0,max:1.2,rgb:'255,200,240',h:160,w:24});tone('sine',700,1400,.5,.1);return true;}
+  if(kind==='stampede'){const n=ev4Pack(9,[10,13],'暴走する魔物',{spdM:1.6});if(!n)return false;
+    msg('地響きが近づく…魔物の群れが暴走してくる！','#ff6a5a');dreadSting();G.shake=Math.max(G.shake,.4);return true;}
+  if(kind==='lostgift'){const f=ev4Near(4,8);if(!f)return false;
+    dropAt(f[0],f[1],{kind:'item',item:genItem(G.alvl+2,{mf:P.st.mf+60,minRar:'magic'})});dropAt(f[0],f[1],{kind:'gold',amount:Math.round(rnd(60,140)*(1+G.alvl*.5))});
+    G.pillars.push({x:f[0],y:f[1],t:0,max:2,rgb:'255,230,140',h:150,w:20});pulse(f[0],f[1],'255,230,140',260,.8,1.2);
+    msg('誰かの落とし物が、近くで光っている…','#ffe9a0');return true;}
+  if(kind==='wanderer'){if(EV5.wander)return false;const f=ev4Near(7,11);if(!f)return false;
+    EV5.wander={x:f[0],y:f[1],t:0,tk:0};msg('霧の中に、古びた外套の旅人が立っている… 近づいてみよう','#c8dcff');tone('sine',330,260,1.4,.07);return true;}
+  return false;
+}
+function ev5Tick(dt){
+  if(G.state!=='play'||!P||G.paused||P.dead)return;
+  const key=G.floor+':'+G.diff+(G.cave?'c':'')+(G.mapSeed||'')+(G.mon&&G.mon.length?'':'x');if(EV5.k!==key){EV5.k=key;ev5Reset();}
+  if(P.vil){ev5Reset();return;}
+  const g=EV5.goblin;if(g){const m=g.m;g.t+=dt;
+    if(m.dead){const x=m.x,y=m.y;EV5.goblin=null;msg('小鬼が金貨袋を落とした！','#ffe46e');sfx&&sfx('gold');
+      for(let k=0;k<7;k++)dropAt(x,y,{kind:'gold',amount:Math.round(rnd(60,150)*(1+G.alvl*.6))});
+      for(let k=0;k<2;k++)dropAt(x,y,{kind:'item',item:genItem(G.alvl+2,{mf:P.st.mf+80,minRar:k===0?'rare':'magic'})});
+      G.pillars.push({x,y,t:0,max:1.4,rgb:'255,220,120',h:150,w:22});pulse(x,y,'255,220,120',320,.9,1);}
+    else if(g.t>40){m.dead=true;m.deadT=9;EV5.goblin=null;msg('小鬼は闇の中へ逃げ去った…','#c0b090');}
+    else{m.aggro=false;m.spd=0;let ax=m.x-P.x,ay=m.y-P.y;const L=Math.hypot(ax,ay)||1;ax/=L;ay/=L;const sp=L<9?5.6:1.2,x0=m.x,y0=m.y;
+      moveEnt(m,ax*sp*dt,ay*sp*dt);if(Math.hypot(m.x-x0,m.y-y0)<sp*dt*.3){moveEnt(m,-ay*sp*dt,ax*sp*dt);moveEnt(m,ay*sp*dt*.0,0);}
+      m.face=Math.atan2(ay,ax);m.moving=true;m.anim=(m.anim||0)+dt*2;if(Math.random()<dt*3)sparks(m.x,m.y,'255,220,120',2,2);}}
+  const b=EV5.bounty;if(b){const m=b.m;
+    if(m.dead){const x=m.x,y=m.y;EV5.bounty=null;msg('賞金首を討ち取った！ 褒美が転がり落ちた','#ffe46e');
+      for(let k=0;k<3;k++)dropAt(x,y,{kind:'item',item:genItem(G.alvl+3,{mf:P.st.mf+100,minRar:k===0?'rare':'magic'})});dropAt(x,y,{kind:'gold',amount:Math.round(rnd(200,400)*(1+G.alvl*.6))});
+      try{ev3Give(['horse','fairy','sword','sl'][(Math.random()*4)|0],1);}catch(e){}
+      G.pillars.push({x,y,t:0,max:1.6,rgb:'255,200,90',h:180,w:26});pulse(x,y,'255,200,90',360,.9,1.2);}
+    else if(dst(m.x,m.y,P.x,P.y)>40){b.far=(b.far||0)+dt;if(b.far>25){m.dead=true;m.deadT=9;EV5.bounty=null;}}else b.far=0;}
+  const sp=EV5.spring;if(sp){sp.t+=dt;sp.tk-=dt;
+    if(sp.tk<=0){sp.tk=1.1;G.pillars.push({x:sp.x,y:sp.y,t:0,max:1.1,rgb:'120,200,255',h:80,w:26});sparks(sp.x,sp.y,'160,225,255',6,3);}
+    if(dst(sp.x,sp.y,P.x,P.y)<2.3){P.hp=Math.min(P.st.maxhp,P.hp+P.st.maxhp*.09*dt);P.mp=Math.min(P.st.maxmp,P.mp+P.st.maxmp*.12*dt);if(Math.random()<dt*4)ftext(P.x,P.y-.8,'+','#8fe0ff',13);}
+    if(sp.t>25){EV5.spring=null;msg('泉は静かに枯れていった','#a0b8c8');}}
+  const mt=EV5.met;if(mt){mt.t+=dt;mt.nx-=dt;
+    if(mt.t<9&&mt.nx<=0){mt.nx=.5;const a=Math.random()*6.283,d=rnd(1,8),f=nearestFloor(P.x+Math.cos(a)*d,P.y+Math.sin(a)*d);if(f)mt.list.push({x:f[0],y:f[1],t:0,pt:0});}
+    for(const o of mt.list){o.t+=dt;o.pt-=dt;if(o.pt<=0&&o.t<1.2){o.pt=.18;pulse(o.x,o.y,'255,80,40',120+o.t*60,.35,.3);sparks(o.x,o.y,'255,120,60',2,2);G.rings.push({x:o.x,y:o.y,r:0,max:1.7,col:'#ff5030',t:0,q:.25,st:'shock'});}
+      if(o.t>=1.2&&!o.hit){o.hit=1;explode(o.x,o.y,1.5,true);G.shake=Math.max(G.shake,.3);
+        if(dst(o.x,o.y,P.x,P.y)<1.8)hurtPlayer(Math.max(1,Math.round(P.st.maxhp*.07)),'fire');
+        for(const m of G.mon)if(!m.dead&&!m.ally&&!m.boss&&dst(o.x,o.y,m.x,m.y)<1.8+m.r)dealMon(m,Math.round(m.maxhp*.3),'fire',{});
+        if(Math.random()<.3)dropAt(o.x,o.y,{kind:'gold',amount:Math.round(rnd(30,80)*(1+G.alvl*.5))});}}
+    mt.list=mt.list.filter(o=>o.t<1.6);
+    if(mt.t>=9&&!mt.list.length){EV5.met=null;msg('流星群が止んだ','#c0b0a0');}}
+  const rn=EV5.rain;if(rn){rn.t+=dt;rn.nx-=dt;
+    if(rn.t<8&&rn.nx<=0){rn.nx=.3;const a=Math.random()*6.283,d=rnd(1,7),f=nearestFloor(P.x+Math.cos(a)*d,P.y+Math.sin(a)*d);if(f){dropAt(f[0],f[1],{kind:'gold',amount:Math.round(rnd(30,80)*(1+G.alvl*.5))});sparks(f[0],f[1],'255,230,120',6,3);}}
+    if(rn.t>=8){EV5.rain=null;msg('黄金の雨が上がった','#e0d090');}}
+  const w=EV5.wander;if(w){w.t+=dt;w.tk-=dt;
+    if(w.tk<=0){w.tk=.9;G.pillars.push({x:w.x,y:w.y,t:0,max:.9,rgb:'200,220,255',h:100,w:14});pulse(w.x,w.y,'200,220,255',120,.3,.8);}
+    if(dst(w.x,w.y,P.x,P.y)<2.4){EV5.wander=null;const r=Math.random();
+      if(r<.55){try{ev3Give(['horse','fairy','sword','sl'][(Math.random()*4)|0],1);}catch(e){}msg('旅人は静かに頷き、何かを手渡して霧に消えた','#c8dcff');}
+      else if(r<.85){dropAt(w.x,w.y,{kind:'item',item:genItem(G.alvl+2,{mf:P.st.mf+80,minRar:'rare'})});msg('旅人は古びた品を残して霧に消えた','#c8dcff');}
+      else{msg('旅人が振り向いた——顔が、ない！','#ff7a7a');dreadSting();G.fl=.4;ev4Pack(4,[3,5],'霧の亡者',{champ:true,spdM:1.2});}
+      pulse(w.x,w.y,'200,220,255',300,.8,1);}
+    else if(w.t>50){EV5.wander=null;msg('旅人は霧の中へ去っていった','#b0b8c8');}}
+}
+/*EV5-END*/
 function evTick(dt){
   if(G.state!=='play'||P.dead||G.paused)return;
-  const key=G.floor+':'+G.diff;if(HEV.k!==key||HEV.m!==G.mon){HEV.k=key;HEV.m=G.mon;HEV.t=rnd(25,45);HEV.hunter=null;}
+  const key=G.floor+':'+G.diff;if(HEV.k!==key||HEV.m!==G.mon){HEV.k=key;HEV.m=G.mon;HEV.t=rnd(10,22);HEV.hunter=null;}
   if(HEV.hunter&&HEV.hunter.dead)HEV.hunter=null;
   if(HEV.hunter){const d=dst(HEV.hunter.x,HEV.hunter.y,P.x,P.y);HEV.hb-=dt;if(d<14&&HEV.hb<=0){HEV.hb=Math.max(.35,d/14*.9);tone('sine',62,40,.16,.13);G.hurtV=Math.min(.35,(14-d)/40);}}
   if(P.vil||(G.bossM&&G.bossM.aggro&&!G.bossM.dead))return;
   let calm=true;for(const m of G.mon){if(!m.dead&&m.aggro&&dst(m.x,m.y,P.x,P.y)<9){calm=false;break;}}
-  HEV.t-=dt*(calm?1:.3);if(HEV.t>0)return;
-  const pool=['ambush','ambush','blackout','hunter','risen','shriek','bloodmoon','doll','mirror','parade','eye','crows','horseman','sl','bell','hands','shadowwall','whisper','coffin','clock','girl'];let ok=false;
-  for(let k=0;k<4&&!ok;k++)ok=evFire(pool[(Math.random()*pool.length)|0])!==false;
-  HEV.t=rnd(40,80);
+  HEV.t-=dt*(calm?1:.75);if(HEV.t>0)return;
+  const pool=['ambush','ambush','blackout','hunter','risen','shriek','bloodmoon','doll','mirror','parade','eye','crows','horseman','sl','bell','hands','shadowwall','whisper','coffin','clock','girl','goblin','goblin','bounty','spring','spring','meteor','goldrain','goldrain','blessing','stampede','lostgift','lostgift','wanderer','wanderer'];let ok=false;
+  for(let k=0;k<8&&!ok;k++)ok=evFire(pool[(Math.random()*pool.length)|0])!==false;
+  HEV.t=rnd(18,42);
 }
 function drawLowHp(){
   if(!P||P.dead||G.state!=='play')return;const f=P.hp/P.st.maxhp,k=Math.max(f<.4?(.4-f)/.4:0,G.hurtV||0);if(k<=.01)return;
@@ -13016,7 +13095,7 @@ function ev3Tick(dt){
   if(P.slc>0){P.slc-=dt;if(P.slc<=0){P.slc=0;msg('呪いの祝福が、解けた','#a0c0a0');}}
   if(EV3.curseFx>0)EV3.curseFx-=dt;
   EV3.slT-=dt*(P.vil?0:1);if(EV3.slT<=0&&!EV3.sl&&!P.vil&&!G.cave){EV3.slT=rnd(480,1000);if(G.floor>=2)ev3SL(false);}
-  ev3SLTick(dt);if(typeof ev4Tick==='function')ev4Tick(dt);if(typeof pondTick==='function')pondTick(dt);if(typeof coachTick==='function')coachTick(dt);
+  ev3SLTick(dt);if(typeof ev4Tick==='function')ev4Tick(dt);if(typeof ev5Tick==='function')ev5Tick(dt);if(typeof pondTick==='function')pondTick(dt);if(typeof coachTick==='function')coachTick(dt);
   if(EV3.moon>0){EV3.moon-=dt;EV3.moonW-=dt;if(EV3.moonW<=0&&EV3.moonN<6){EV3.moonW=11;EV3.moonN++;const fam=evFamily();for(let i=0;i<4;i++)evSpawn(fam[i%fam.length],rnd(6,10),Math.random()*6.28,{spdM:1.2,champ:Math.random()<.2});}if(EV3.moon<=0)msg('赤い月が、沈んでいく','#c0a0a0');}
   const par=EV3.par;if(par){par.t+=dt;if(P.moving&&par.t<par.dur-1)par.moved=true;if(par.t>=par.dur){EV3.par=null;
       if(par.moved){msg('提灯の列が、一斉にこちらを振り向いた！','#ff6a6a');tone('sawtooth',300,120,.8,.1);const fam=evFamily();for(let i=0;i<5;i++)evSpawn(MT.wraith?'wraith':fam[i%fam.length],rnd(4,7),Math.random()*6.28,{spdM:1.35,champ:i<2});}
@@ -13957,7 +14036,7 @@ function galShot(kind,spec,cw,ch,scl,face,eq,cls){
   }finally{ctx=sv.ctx;P=sv.P;W=sv.W;H=sv.H;cam.x=sv.cx;cam.y=sv.cy;G.t=sv.t;}
   return c.toDataURL();
 }
-window.__dbg={netPack,netToSv,enterFloor,genItem,botNew,botCatchUp,botSpawn,botAI,botStart,botAutoGear,BOT,botSp,m3dEquip,AUPK_LIST,showAuPick,auPickOk,MSHR,LD,EXV,AU,w2s,SX:()=>SX,SY:()=>SY,M3D,auToggle,auTick,UI,mapRef:()=>({map,WD,FD,tint,deco,TILES}),GLP,los,snapCam,EXS,EXD,EXI,exStart,exAssign,MT,ICO,icoCv,ICM,s3Cast,WFX,wfxAt,SK,CLS,HPC,pondTick,pondAt,PND,coachGo,saveGame,loadSave,EV4,ev4Fire,explode,spawnProj,FX2,fx2Spr,fx2Painter,fx2FireSpr,EV3,ev3Fire,ev3Use,ev3Give,ev3SL,wxSet,wxLightning,get HD3ON(){return HD3ON;},set HD3ON(v){HD3ON=v;},galShot,AREAS,evFire,evTick,HEV,stalkTick,mpAvatar,ultDrop,ultDropItem,hurtPlayer,deathBlast,GX_ZONES,isWall,los,nearestFloor,AI,ACT,spawnCurse,summonAt,raiseHostile,poisonP,detonate,bossSpecial,AREAS,THEMES,MT,makeMon,spawnAll,genLevel,CLS,SK,BASES,UNIQ,SETS,BUFF,mkItem,swapWeapons,newPlayer,itemHTML,eqGet,eqSet,showClassSelect,G,get P(){return P;},startGame,update,render,castSkill,genItem,recalc,enterFloor,killMon,hudHit,drinkPot,activate,findHoverMon,addAlly,raiseAlly,necroSkill,useShrine,spawnExtras,updateAllies,showWaypoints,corpseNear,SHRINES,scoutToggle,warpToBoss,scoutCount,guardCount,chaosCast,convertCorpse,convCount,confMon,NET,showTitle,netPack,netToSv,netFlush};
+window.__dbg={ev5Fire,EV5,ev5Tick,evFire,HEV,evTick,netPack,netToSv,enterFloor,genItem,botNew,botCatchUp,botSpawn,botAI,botStart,botAutoGear,BOT,botSp,m3dEquip,AUPK_LIST,showAuPick,auPickOk,MSHR,LD,EXV,AU,w2s,SX:()=>SX,SY:()=>SY,M3D,auToggle,auTick,UI,mapRef:()=>({map,WD,FD,tint,deco,TILES}),GLP,los,snapCam,EXS,EXD,EXI,exStart,exAssign,MT,ICO,icoCv,ICM,s3Cast,WFX,wfxAt,SK,CLS,HPC,pondTick,pondAt,PND,coachGo,saveGame,loadSave,EV4,ev4Fire,explode,spawnProj,FX2,fx2Spr,fx2Painter,fx2FireSpr,EV3,ev3Fire,ev3Use,ev3Give,ev3SL,wxSet,wxLightning,get HD3ON(){return HD3ON;},set HD3ON(v){HD3ON=v;},galShot,AREAS,evFire,evTick,HEV,stalkTick,mpAvatar,ultDrop,ultDropItem,hurtPlayer,deathBlast,GX_ZONES,isWall,los,nearestFloor,AI,ACT,spawnCurse,summonAt,raiseHostile,poisonP,detonate,bossSpecial,AREAS,THEMES,MT,makeMon,spawnAll,genLevel,CLS,SK,BASES,UNIQ,SETS,BUFF,mkItem,swapWeapons,newPlayer,itemHTML,eqGet,eqSet,showClassSelect,G,get P(){return P;},startGame,update,render,castSkill,genItem,recalc,enterFloor,killMon,hudHit,drinkPot,activate,findHoverMon,addAlly,raiseAlly,necroSkill,useShrine,spawnExtras,updateAllies,showWaypoints,corpseNear,SHRINES,scoutToggle,warpToBoss,scoutCount,guardCount,chaosCast,convertCorpse,convCount,confMon,NET,showTitle,netPack,netToSv,netFlush};
 })();
 </script>
 </body>
