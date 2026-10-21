@@ -1303,6 +1303,11 @@ function genItem0(ilvl,o={}){
   return it;
 }
 function sellPrice(it){const RM={normal:.6,magic:2,rare:5,unique:60,set:25,elite:120,class:14};return Math.max(1,Math.round((4+it.ilvl*2.2)*RM[it.rar]*(1+Object.keys(it.mods).length*.2)));}
+/* ---- 買い戻し：売った装備を48時間・最大30個まで商人で買い戻せる ---- */
+const BB_MAX=30,BB_MS=48*3600*1000;
+function bbPrune(){if(!P)return [];const n=Date.now();P.sold=(Array.isArray(P.sold)?P.sold:[]).filter(r=>r&&r.it&&n-r.t<BB_MS);if(P.sold.length>BB_MAX)P.sold.length=BB_MAX;return P.sold;}
+function bbAdd(it,price){if(!P||!it)return;bbPrune();P.sold.unshift({it,p:price,t:Date.now()});if(P.sold.length>BB_MAX)P.sold.length=BB_MAX;}
+function bbLeft(r){const h=Math.max(0,(BB_MS-(Date.now()-r.t))/3600000);return h>=1?Math.floor(h)+'時間':Math.max(1,Math.floor(h*60))+'分';}
 function canEquip(it){return P.lvl>=it.reqLv&&P.str>=it.reqStr&&(!it.cls||it.cls===P.cls);}
 let MKP={lvl:99,str:999,cls:null};
 function itTyp(it){return it.t||(BASEMAP[it.base]&&BASEMAP[it.base].t)||it.slot;}
@@ -1444,7 +1449,7 @@ function bagTidy(opt){
   stashEnsure();let sold=0,gold=0,moved=0;
   for(let i=0;i<P.bag.length;i++){const it=P.bag[i];if(!it)continue;
     if(opt.stash!==false&&TIDY_HI[it.rar]){const s=P.stash.indexOf(null);if(s>=0){P.stash[s]=it;P.bag[i]=null;moved++;}continue;}
-    if(opt.sell!==false&&tidyWeak(it)){gold+=sellPrice(it);P.bag[i]=null;sold++;}}
+    if(opt.sell!==false&&tidyWeak(it)){const pr=sellPrice(it);bbAdd(it,pr);gold+=pr;P.bag[i]=null;sold++;}}
   if(sold||moved){P.gold+=gold;UI.dirty=true;hideTip();if(sold)sfx('gold');else sfx('equip');
     if(!opt.quiet||sold>=3||moved)msg('整理: '+(sold?`売却${sold}個 +${gold}G`:'')+(sold&&moved?' ／ ':'')+(moved?`倉庫へ${moved}個`:''),'#ffe9a0');
     try{saveGame();}catch(e){}}
@@ -2181,7 +2186,7 @@ function saveGame(){
   if(BOT.dirty)botSave();
   if(G.maxMode)return;
   try{if(P.pet)localStorage.setItem('fs-petcfg',JSON.stringify(P.pet));}catch(e){}
-  try{const s={pet:P.pet,lvl:P.lvl,xp:P.xp,str:P.str,dex:P.dex,vit:P.vit,ene:P.ene,statPts:P.statPts,skillPts:P.skillPts,skills:P.skills,gold:P.gold,pot:P.pot,evi:P.evi,eq:P.eq,alt:P.alt,sw:P.sw,cls:P.cls,bag:P.bag,stash:P.stash||[],left:P.left,right:P.right,fk:P.fk,ms:P.ms,diff:G.diff,floor:G.floor,kills:G.kills,wp:Array.from(G.wp),vq:P.vq||{},cid:G.cid||null,cre:G.ccre||null};
+  try{bbPrune();const s={sold:P.sold||[],pet:P.pet,lvl:P.lvl,xp:P.xp,str:P.str,dex:P.dex,vit:P.vit,ene:P.ene,statPts:P.statPts,skillPts:P.skillPts,skills:P.skills,gold:P.gold,pot:P.pot,evi:P.evi,eq:P.eq,alt:P.alt,sw:P.sw,cls:P.cls,bag:P.bag,stash:P.stash||[],left:P.left,right:P.right,fk:P.fk,ms:P.ms,diff:G.diff,floor:G.floor,kills:G.kills,wp:Array.from(G.wp),vq:P.vq||{},cid:G.cid||null,cre:G.ccre||null};
     localStorage.setItem(SAVEKEY,JSON.stringify(s));netSave(s);}catch(e){}
 }
 function loadSave(){try{const r=localStorage.getItem(SAVEKEY);return r?JSON.parse(r):null;}catch(e){return null;}}
@@ -2197,7 +2202,7 @@ function startGameUI(sv,maxMode,cls){
 function startGame(sv,maxMode,cls){
   audioInit();P=newPlayer(sv?(sv.cls||'warrior'):cls);G.ally=[];G.wp=new Set(sv&&sv.wp?sv.wp:[]);G.diff=0;G.kills=0;G.maxMode=!!maxMode;G.cid=maxMode?null:((sv&&sv.cid)||netNewId());G.ccre=(sv&&sv.cre)||Date.now();
   if(sv){Object.assign(P,{lvl:sv.lvl,xp:sv.xp,str:sv.str,dex:sv.dex,vit:sv.vit,ene:sv.ene,statPts:sv.statPts,skillPts:sv.skillPts,skills:sv.skills,gold:sv.gold,evi:sv.evi||{},pot:Object.assign({hp:0,mp:0,rj:0,big:0},sv.pot),eq:sv.eq||{},bag:sv.bag,left:sv.left,right:sv.right,fk:sv.fk||P.fk,ms:sv.ms||null,vq:sv.vq||{},alt:sv.alt||{weapon:null,shield:null},sw:sv.sw||0,cls:sv.cls||'warrior'});
-    G.diff=sv.diff;G.kills=sv.kills||0;if(sv.pet)P.pet=sv.pet;else{try{const pc=JSON.parse(localStorage.getItem('fs-petcfg')||'null');if(pc&&pc.f)P.pet=pc;}catch(e){}}
+    G.diff=sv.diff;G.kills=sv.kills||0;P.sold=Array.isArray(sv.sold)?sv.sold:[];if(sv.pet)P.pet=sv.pet;else{try{const pc=JSON.parse(localStorage.getItem('fs-petcfg')||'null');if(pc&&pc.f)P.pet=pc;}catch(e){}}
     if(!sv.cls){const tr=CLS.warrior.flat;for(const id in P.skills){if(tr.indexOf(id)<0){P.skillPts+=P.skills[id];delete P.skills[id];}}}
     const okSk=id=>id==='attack'||(P.skills[id]>0&&SK[id]&&SK[id].kind!=='passive');
     if(!okSk(P.left))P.left='attack';if(!okSk(P.right))P.right=ORD().find(id=>okSk(id))||'attack';
@@ -10962,7 +10967,7 @@ function msAct(a,el){
   if(a==='msel_sell'||a==='msel_drop'){
     const hi=L.some(i=>TIDY_HI[P.bag[i].rar]);const k=a==='msel_sell'?'sell':'drop';
     if((hi||k==='drop')&&UI.msConf!==k){UI.msConf=k;UI.dirty=true;sfx('err');return;}
-    let g=0;for(const i of L){const it=P.bag[i];if(k==='sell'){g+=sellPrice(it);}else dropAt(P.x,P.y,{kind:'item',item:it});P.bag[i]=null;}
+    let g=0;for(const i of L){const it=P.bag[i];if(k==='sell'){const pr=sellPrice(it);bbAdd(it,pr);g+=pr;}else dropAt(P.x,P.y,{kind:'item',item:it});P.bag[i]=null;}
     if(k==='sell'){P.gold+=g;msg(`${L.length}個を売却 +${g}G`,'#ffe46e');sfx('gold');}else{msg(`${L.length}個を捨てた`,'#c8b890');sfx('equip');}}
   else if(a==='msel_stash'){let n=0;for(const i of L){const sI=P.stash.indexOf(null);if(sI<0){msg('倉庫がいっぱいだ','#ff6d58');break;}P.stash[sI]=P.bag[i];P.bag[i]=null;n++;}if(n)msg(`${n}個を倉庫へ`,'#ffe9a0');sfx('equip');}
   UI.sel={};UI.msConf=null;UI.dirty=true;hideTip();try{saveGame();}catch(e){}
@@ -11072,6 +11077,7 @@ function shopHTML(){
   ${BELT.map(b=>`<div class="shopi ${P.gold<potPrice(b.t)?'poor':''}" data-act="potbuy" data-t="${b.t}"><span style="color:${b.c}">${b.n}のポーション（所持 ${P.pot[b.t]||0}）</span><b>${potPrice(b.t)}G</b></div>`).join('')}
   <div class="sub">装備品（クリックで購入）</div>
   ${M.stock.map((it,i)=>it?`<div class="shopi ${P.gold<sellPrice(it)*4?'poor':''}" data-act="buy" data-i="${i}" data-tip="shop:${i}"><span style="color:${RC[it.rar]}">${it.name}</span><b>${sellPrice(it)*4}G</b></div>`:'').join('')||'<div style="color:var(--dim)">品切れ</div>'}
+  ${(()=>{const L=bbPrune();return `<div class="sub">買い戻し（売った装備を48時間・最大${BB_MAX}個）${L.length?'':'　― なし'}</div>`+L.map((r,i)=>`<div class="shopi ${P.gold<r.p?'poor':''}" data-act="rebuy" data-i="${i}" data-tip="bb:${i}"><span style="color:${RC[r.it.rar]}">${botEsc(r.it.name)} <small style="color:var(--dim)">残り${bbLeft(r)}</small></span><b>${r.p}G</b></div>`).join('');})()}
   <div class="sub">売却：右の持ち物をタップ（「タップ売却」ON時）。弱い装備は一括で売れます</div>
   <div class="eqtb"><button class="eqb" data-act="autotidy">🪙 弱い装備を一括売却</button><button class="eqb ${UI.sellMode?'on':''}" data-act="sellmode">💰 タップ売却 ${UI.sellMode?'ON':'OFF'}</button></div>`;
 }
@@ -11173,7 +11179,7 @@ function toggleLeft(n){UI.left=UI.left===n?null:n;if(n!=='shop'&&UI.left!=='shop
 function toggleRight(){UI.right=!UI.right;if(!UI.right&&UI.left==='shop'){UI.left=null;G.shopOpen=false;}UI.dirty=true;hideTip();}
 function tipFor(k){const [t,v]=k.split(':');let it=null;
   if(t==='sk')return skTipHTML(v);
-  if(t==='inv')it=P.bag[+v];else if(t==='stash')it=P.stash&&P.stash[+v];else if(t==='eq')it=eqGet(v);else if(t==='shop')it=G.merchant.stock[+v];else if(t==='mkb')it=MK.ctx&&MK.ctx.bag[+v];else if(t==='mkl')it=MK.view[+v]&&MK.view[+v].item;else if(t==='trM')it=TR.it[+v];else if(t==='trT'){const th=TR.all[TR.with];it=th&&th.it?th.it[+v]:null;}
+  if(t==='inv')it=P.bag[+v];else if(t==='stash')it=P.stash&&P.stash[+v];else if(t==='eq')it=eqGet(v);else if(t==='shop')it=G.merchant.stock[+v];else if(t==='bb'){const r=bbPrune()[+v];it=r&&r.it;}else if(t==='mkb')it=MK.ctx&&MK.ctx.bag[+v];else if(t==='mkl')it=MK.view[+v]&&MK.view[+v].item;else if(t==='trM')it=TR.it[+v];else if(t==='trT'){const th=TR.all[TR.with];it=th&&th.it?th.it[+v]:null;}
   return it?itemHTML(it)+((t==='eq'||t==='trM'||t==='mkb')?'':compareHTML(it)):null;}
 function panelAct(e,isRight){
   const el=e.target.closest('[data-act]');if(!el)return;const a=el.dataset.act;
@@ -11199,13 +11205,15 @@ function panelAct(e,isRight){
     if(UI.fkSel!=null){const o=P.fk.indexOf(id);if(o>=0)P.fk[o]=null;P.fk[UI.fkSel]=id;msg(SK[id].n+' を F'+(UI.fkSel+1)+' に登録','#d1a74f');UI.fkSel=null;UI.dirty=true;sfx('equip');return;}
     if(UI.msSel!=null){const o=P.ms.indexOf(id);if(o>=0)P.ms[o]=null;P.ms[UI.msSel]=id;msg(SK[id].n+' を攻撃スロット'+(UI.msSel+1)+'に登録','#d1a74f');UI.msSel=null;UI.dirty=true;sfx('equip');return;}if(isRight)P.right=id;else P.left=id;UI.dirty=true;sfx('equip');return;}
   if(a==='potbuy'){const t=el.dataset.t,pr=potPrice(t);if(P.gold<pr){msg('金貨が足りない','#ff6d58');sfx('err');return;}if((P.pot[t]||0)>=POTMAX){msg('これ以上持てない','#ff6d58');return;}P.gold-=pr;P.pot[t]=(P.pot[t]||0)+1;sfx('gold');UI.dirty=true;return;}
+  if(a==='rebuy'){const L=bbPrune(),i=+el.dataset.i,r=L[i];if(!r)return;if(P.gold<r.p){msg('金貨が足りない','#ff6d58');sfx('err');return;}
+    const bi=P.bag.indexOf(null);if(bi<0){msg('持ち物がいっぱいだ','#ff6d58');sfx('err');return;}P.gold-=r.p;P.bag[bi]=r.it;L.splice(i,1);sfx('gold');hideTip();UI.dirty=true;msg('買い戻した: '+r.it.name,'#ffe9a0');try{saveGame();}catch(e){}return;}
   if(a==='buy'){const i=+el.dataset.i,it=G.merchant.stock[i];if(!it)return;const pr=sellPrice(it)*4;if(P.gold<pr){msg('金貨が足りない','#ff6d58');sfx('err');return;}
     const bi=P.bag.indexOf(null);if(bi<0){msg('持ち物がいっぱいだ','#ff6d58');return;}P.gold-=pr;P.bag[bi]=it;G.merchant.stock[i]=null;sfx('gold');hideTip();UI.dirty=true;return;}
   if(a==='eq'){const s=el.dataset.slot,it=eqGet(s);if(!it)return;const bi=P.bag.indexOf(null);if(bi<0){msg('持ち物がいっぱいだ','#ff6d58');return;}P.bag[bi]=it;eqSet(s,null);recalc();hideTip();UI.dirty=true;sfx('equip');return;}
   if(a==='inv'){const i=+el.dataset.i,it=P.bag[i];if(!it)return;
     if(UI.msel&&!isRight){UI.sel=UI.sel||{};UI.sel[i]=UI.sel[i]?0:1;UI.msConf=null;UI.dirty=true;sfx('equip');hideTip();return;}
-    if(!isRight&&G.shopOpen&&UI.sellMode&&!TIDY_HI[it.rar]){P.gold+=sellPrice(it);P.bag[i]=null;sfx('gold');ftext&&ftext(P.x,P.y-1,'+'+sellPrice(it)+'G','#ffe46e',13);hideTip();UI.dirty=true;return;}
-    if(isRight){if(G.shopOpen){P.gold+=sellPrice(it);P.bag[i]=null;sfx('gold');}else{dropAt(P.x,P.y,{kind:'item',item:it});P.bag[i]=null;sfx('equip');}hideTip();UI.dirty=true;return;}
+    if(!isRight&&G.shopOpen&&UI.sellMode&&!TIDY_HI[it.rar]){bbAdd(it,sellPrice(it));P.gold+=sellPrice(it);P.bag[i]=null;sfx('gold');ftext&&ftext(P.x,P.y-1,'+'+sellPrice(it)+'G','#ffe46e',13);hideTip();UI.dirty=true;return;}
+    if(isRight){if(G.shopOpen){bbAdd(it,sellPrice(it));P.gold+=sellPrice(it);P.bag[i]=null;sfx('gold');}else{dropAt(P.x,P.y,{kind:'item',item:it});P.bag[i]=null;sfx('equip');}hideTip();UI.dirty=true;return;}
     if(!canEquip(it)){msg('装備できない（必要レベル・筋力・職業が不足）','#ff6d58');sfx('err');return;}
     const sl=slotFor(it,e.shiftKey);const old=eqGet(sl);eqSet(sl,it);P.bag[i]=old||null;recalc();hideTip();UI.dirty=true;sfx('equip');return;}
 }
@@ -11213,7 +11221,7 @@ function panelAct(e,isRight){
   p.addEventListener('click',e=>{if(typeof MOB!=='undefined'&&MOB.on){const el=e.target.closest('[data-act]');if(el){const a=el.dataset.act;
       if(a==='inv'&&UI.msel){panelAct(e,false);return;}
       if(a==='inv'&&G.shopOpen&&UI.sellMode){const it=P.bag[+el.dataset.i];if(it&&!TIDY_HI[it.rar]){panelAct(e,false);return;}}
-      if(a==='inv'||a==='eq'||(a==='buy')||a==='sknode'){e.stopPropagation();mobSheet(el);return;}}}panelAct(e,false);});
+      if(a==='inv'||a==='eq'||(a==='buy')||a==='rebuy'||a==='sknode'){e.stopPropagation();mobSheet(el);return;}}}panelAct(e,false);});
   p.addEventListener('contextmenu',e=>{e.preventDefault();panelAct(e,true);});
   p.addEventListener('mousemove',e=>{const el=e.target.closest('[data-tip]');if(el){const h=tipFor(el.dataset.tip);if(h){showTip(h,e.clientX,e.clientY);UI.tipFrom='dom';return;}}if(UI.tipFrom==='dom')hideTip();});
   p.addEventListener('mouseleave',()=>{if(UI.tipFrom==='dom')hideTip();UI.hoverSk=null;});
@@ -11309,7 +11317,7 @@ function netJ(x){try{return JSON.parse(x);}catch(e){return null;}}
 function netPack(s,now){
   const cname=(NET.dn||'冒険者').slice(0,16)||'冒険者';
   return {name:cname,class:String(s.cls||'warrior').slice(0,32),level:Math.max(1,Math.min(99,s.lvl|0)),exp:Math.max(0,+s.xp||0),
-    stats:JSON.stringify({str:s.str,dex:s.dex,vit:s.vit,ene:s.ene,statPts:s.statPts,skillPts:s.skillPts,gold:s.gold,kills:s.kills,pot:s.pot,left:s.left,right:s.right,fk:s.fk,ms:s.ms,sw:s.sw,evi:s.evi||{},pet:s.pet||null}),
+    stats:JSON.stringify({str:s.str,dex:s.dex,vit:s.vit,ene:s.ene,statPts:s.statPts,skillPts:s.skillPts,gold:s.gold,kills:s.kills,pot:s.pot,left:s.left,right:s.right,fk:s.fk,ms:s.ms,sw:s.sw,evi:s.evi||{},pet:s.pet||null,sold:s.sold||[]}),
     skills:JSON.stringify(s.skills||{}),inventory:JSON.stringify(s.bag||[]),equipment:JSON.stringify({eq:s.eq||{},alt:s.alt||{},stash:s.stash||[]}),
     progress:JSON.stringify({diff:s.diff,floor:s.floor,wp:s.wp||[],vq:s.vq||{}}),updatedAt:firebase.database.ServerValue.TIMESTAMP,createdAt:s.cre||now};
 }
@@ -11333,7 +11341,7 @@ function netToSv(c,id){
   /* 以前のクラウド保存にはチケット(evi)・ペット・倉庫が入っていない：同じキャラの端末内セーブから補う */
   try{const loc=loadSave();if(loc&&loc.cid===id){
     if(!sv.evi||!Object.keys(sv.evi).some(k=>sv.evi[k]>0))if(loc.evi)sv.evi=loc.evi;
-    if(!sv.pet&&loc.pet)sv.pet=loc.pet;
+    if(!sv.pet&&loc.pet)sv.pet=loc.pet;if(!(sv.sold&&sv.sold.length)&&loc.sold)sv.sold=loc.sold;
     if((!sv.stash||!sv.stash.some(x=>x))&&Array.isArray(loc.stash))sv.stash=loc.stash;}}catch(e){}
   return sv;
 }
@@ -14029,10 +14037,10 @@ function mobSheet(el,isRightPanel){
       mobSheetHide();});
   }
   const a=el.dataset.act;let body='',btns='';
-  if(a==='inv'||a==='eq'||a==='buy'){const k=el.dataset.tip,h=k?tipFor(k):null;body=h||'';
+  if(a==='inv'||a==='eq'||a==='buy'||a==='rebuy'){const k=el.dataset.tip,h=k?tipFor(k):null;body=h||'';
     if(a==='inv')btns=`<button class="btn" data-sa="eq1">装備する</button><button class="btn ghost" data-sa="eq2">予備セットに装備</button><button class="btn ghost" data-sa="drop">${G.shopOpen?'売却する':'捨てる'}</button>`;
     else if(a==='eq')btns='<button class="btn" data-sa="eq1">外す</button>';
-    else btns='<button class="btn pri" data-sa="eq1">購入する</button>';
+    else btns='<button class="btn pri" data-sa="eq1">'+(a==='rebuy'?'買い戻す':'購入する')+'</button>';
     MOB.sh={el,id:null};}
   else if(a==='sknode'){const id=el.dataset.id,S=SK[id];if(!(P.skills[id]>0)||S.kind==='passive'){const lv=P.skills[id]||0;body=`<div class="tn">${ICO(S)} ${S.n}</div><div>${lv>0?S.d(skl(id)):'未習得'}</div>`;btns='';MOB.sh={el,id};}
     else{body=`<div class="tn">${ICO(S)} ${S.n} Lv${skl(id)}</div><div>${S.d(skl(id))}</div>`;
@@ -14187,7 +14195,7 @@ function galShot(kind,spec,cw,ch,scl,face,eq,cls){
   }finally{ctx=sv.ctx;P=sv.P;W=sv.W;H=sv.H;cam.x=sv.cx;cam.y=sv.cy;G.t=sv.t;}
   return c.toDataURL();
 }
-window.__dbg={BOT,botNew,botSpawn,bagTidy,tidyWeak,autoBest,stashOpen,ev5Fire,EV5,ev5Tick,evFire,HEV,evTick,netPack,netToSv,enterFloor,genItem,botNew,botCatchUp,botSpawn,botAI,botStart,botAutoGear,BOT,botSp,m3dEquip,AUPK_LIST,showAuPick,auPickOk,MSHR,LD,EXV,AU,w2s,SX:()=>SX,SY:()=>SY,M3D,auToggle,auTick,UI,mapRef:()=>({map,WD,FD,tint,deco,TILES}),GLP,los,snapCam,EXS,EXD,EXI,exStart,exAssign,MT,ICO,icoCv,ICM,s3Cast,WFX,wfxAt,SK,CLS,HPC,pondTick,pondAt,PND,coachGo,saveGame,loadSave,EV4,ev4Fire,explode,spawnProj,FX2,fx2Spr,fx2Painter,fx2FireSpr,EV3,ev3Fire,ev3Use,ev3Give,ev3SL,wxSet,wxLightning,get HD3ON(){return HD3ON;},set HD3ON(v){HD3ON=v;},galShot,AREAS,evFire,evTick,HEV,stalkTick,mpAvatar,ultDrop,ultDropItem,hurtPlayer,deathBlast,GX_ZONES,isWall,los,nearestFloor,AI,ACT,spawnCurse,summonAt,raiseHostile,poisonP,detonate,bossSpecial,AREAS,THEMES,MT,makeMon,spawnAll,genLevel,CLS,SK,BASES,UNIQ,SETS,BUFF,mkItem,swapWeapons,newPlayer,itemHTML,eqGet,eqSet,showClassSelect,G,get P(){return P;},startGame,update,render,castSkill,genItem,recalc,enterFloor,killMon,hudHit,drinkPot,activate,findHoverMon,addAlly,raiseAlly,necroSkill,useShrine,spawnExtras,updateAllies,showWaypoints,corpseNear,SHRINES,scoutToggle,warpToBoss,scoutCount,guardCount,chaosCast,convertCorpse,convCount,confMon,NET,showTitle,netPack,netToSv,netFlush};
+window.__dbg={bbPrune,BOT,botNew,botSpawn,bagTidy,tidyWeak,autoBest,stashOpen,ev5Fire,EV5,ev5Tick,evFire,HEV,evTick,netPack,netToSv,enterFloor,genItem,botNew,botCatchUp,botSpawn,botAI,botStart,botAutoGear,BOT,botSp,m3dEquip,AUPK_LIST,showAuPick,auPickOk,MSHR,LD,EXV,AU,w2s,SX:()=>SX,SY:()=>SY,M3D,auToggle,auTick,UI,mapRef:()=>({map,WD,FD,tint,deco,TILES}),GLP,los,snapCam,EXS,EXD,EXI,exStart,exAssign,MT,ICO,icoCv,ICM,s3Cast,WFX,wfxAt,SK,CLS,HPC,pondTick,pondAt,PND,coachGo,saveGame,loadSave,EV4,ev4Fire,explode,spawnProj,FX2,fx2Spr,fx2Painter,fx2FireSpr,EV3,ev3Fire,ev3Use,ev3Give,ev3SL,wxSet,wxLightning,get HD3ON(){return HD3ON;},set HD3ON(v){HD3ON=v;},galShot,AREAS,evFire,evTick,HEV,stalkTick,mpAvatar,ultDrop,ultDropItem,hurtPlayer,deathBlast,GX_ZONES,isWall,los,nearestFloor,AI,ACT,spawnCurse,summonAt,raiseHostile,poisonP,detonate,bossSpecial,AREAS,THEMES,MT,makeMon,spawnAll,genLevel,CLS,SK,BASES,UNIQ,SETS,BUFF,mkItem,swapWeapons,newPlayer,itemHTML,eqGet,eqSet,showClassSelect,G,get P(){return P;},startGame,update,render,castSkill,genItem,recalc,enterFloor,killMon,hudHit,drinkPot,activate,findHoverMon,addAlly,raiseAlly,necroSkill,useShrine,spawnExtras,updateAllies,showWaypoints,corpseNear,SHRINES,scoutToggle,warpToBoss,scoutCount,guardCount,chaosCast,convertCorpse,convCount,confMon,NET,showTitle,netPack,netToSv,netFlush};
 })();
 </script>
 </body>
