@@ -13121,6 +13121,11 @@ function auSpend(){
 function auSkill(T,en,d){
   const ids=['attack'];for(const id in P.skills)if(P.skills[id]>0&&SK[id]&&SK[id].kind!=='passive')ids.push(id);
   const near=en.filter(e=>e[0]<=4.2).length,meleeNear=en.filter(e=>e[0]<=2.2&&e[1].rng<=0).length,hpR=P.hp/P.st.maxhp,mpR=P.mp/P.st.maxmp;
+  const nAt=(x,y,R)=>{let n=0;for(const e of en){if(!e[1].dead&&dst(x,y,e[1].x,e[1].y)<=R+e[1].r)n++;}return n;};
+  const nSelf=R=>nAt(P.x,P.y,R),nT=nAt(T.x,T.y,3);
+  const big=!!(T.boss||T.champ||T.elite||T.maxhp>P.st.maxhp*.6);
+  const avgD=((P.st.dMin||1)+(P.st.dMax||2))/2,trivial=T.hp<avgD*1.6&&!big;
+  const lastT=id=>(AU.last&&AU.last[id])!==undefined?G.t-AU.last[id]:99;
   let best=null,bs=-1e9;
   for(const id of ids){
     const S=id==='attack'?atkS():SK[id];if(!S)continue;const lv=id==='attack'?1:skl(id);if(lv<=0)continue;
@@ -13132,25 +13137,35 @@ function auSkill(T,en,d){
     else if(K==='aura'){if(P.aura)continue;s=(id==='auraheal'?(hpR<.6?2.2:.8):1.6);rng=99;}
     else if(K==='heal'){s=hpR<.45?6:hpR<.7?2.2:-5;rng=99;}
     else if(K==='tele'){const S2=S;if(S2.back){s=(hpR<.35&&meleeNear>=2)?5:-9;}else if(S2.hit){s=d>3?1.2:-2;}else s=-9;rng=99;}
-    else if(K==='zone'){s=near>=3?2.4:0.2;rng=8;}
-    else if(K==='curse'){if(T.cursed>0||T.decay>0)continue;s=1.8+near*.3;rng=8;}
-    else if(K==='raise'||K==='skelwar'){const n=G.ally.filter(a=>!a.dead&&a.owner===P).length;s=n<4?2.6:-9;rng=99;}
-    else if(K==='cexp'||K==='drain'||K==='chaos'){s=1.1+near*.3;rng=8;}
+    else if(K==='zone'){if(lastT(id)<3)continue;const z=nAt(T.x,T.y,3.2);s=z>=3?2.6:z>=2?1.2:(big?.8:-4);rng=8;}
+    else if(K==='curse'){if(T.cursed>0||T.decay>0)continue;const f=nAt(T.x,T.y,3.4);let nn=0;for(const e of en){const m=e[1];if(!m.dead&&!(m.decay>0)&&dst(T.x,T.y,m.x,m.y)<=3.4+m.r)nn++;}if(nn<2&&!big)continue;s=1.6+nn*.35;rng=8;}
+    else if(K==='raise'){const mine=G.ally.filter(a=>!a.dead&&a.owner===P&&!a.bot).length;if(mine>=Math.min(8,3+(lv>>1))||lastT(id)<.7)continue;if(!corpseNear(T.x,T.y,6,1).length)continue;s=2.8;rng=99;}
+    else if(K==='skelwar'){const mine=G.ally.filter(a=>!a.dead&&a.owner===P&&!a.bot).length;if(mine>=6||lastT(id)<18)continue;s=(near>=2||big)?3:-9;rng=99;}
+    else if(K==='cexp'){const cs=corpseNear(T.x,T.y,5,3+(lv>>2));if(!cs.length)continue;let hit=0;for(const c of cs)hit+=nAt(c.x,c.y,2.2);if(hit<2&&!big)continue;if(lastT(id)<1.5)continue;s=1.4+Math.min(3,hit*.5);rng=8;}
+    else if(K==='drain'){s=hpR<.8?2.4:(big?.9:.3);rng=8;}
+    else if(K==='chaos'){if(lastT(id)<2)continue;s=(near>=2||big)?1.8+near*.25:.2;rng=8;}
     else if(K==='leap'){s=(d>3.5&&d<10)?1.6:-3;rng=10;}
     else if(K==='gx'&&S.g){const g=S.g,gt=g.t,cl=(AU.last&&AU.last[id])||-99;
-      if(gt==='cleave'){s=1.2+Math.min(3,(near-1)*.6)+(meleeNear?.6:0);rng=(g.R||2.5)+T.r;}
+      if(gt==='cleave'){const c2=nSelf((g.R||2.5)+.3);if(c2<1)continue;s=1.2+Math.min(3,(c2-1)*.7)+(meleeNear?.4:0);rng=(g.R||2.5)+T.r;}
       else if(gt==='rush'){s=d>3?1.8:-3;rng=Math.min(g.R||8,9);}
-      else if(gt==='nova'){s=near>=2?2+near*.4:.2;rng=(g.R||5)*.85;}
-      else if(gt==='aoe'||gt==='field'||gt==='vortex'){s=(gt==='field'?1.1:1.7)+Math.min(3.2,(near-1)*.6)+(T.boss?1.2:0);rng=(g.rng||8)*.9;}
+      else if(gt==='nova'){const c2=nSelf(Math.min(6,g.R||5));if(c2<2&&!(big&&c2>=1))continue;if(lastT(id)<2)continue;s=1.8+c2*.4;rng=(g.R||5)*.85;}
+      else if(gt==='aoe'||gt==='field'||gt==='vortex'){if(nT<2&&!big)continue;if(lastT(id)<(gt==='field'?Math.max(3,(g.dur||5)*.7):2))continue;s=(gt==='field'?1.1:1.7)+Math.min(3.2,(nT-1)*.6)+(T.boss?1.2:0);rng=(g.rng||8)*.9;}
       else if(gt==='volley'||gt==='beam'){s=1.8+Math.min(2,(near-1)*.4);rng=gt==='beam'?(g.len||9)*.95:9;}
       else if(gt==='heal'){s=hpR<.5?6:-5;rng=99;}
-      else if(gt==='summon'){const n=G.ally.filter(a=>!a.dead&&a.owner===P).length;s=(n<4&&near>=1)?2.2:-9;rng=99;}
-      else if(gt==='pull'){s=(near>=2&&d>4)?1.4:-2;rng=(g.R||8)*.9;}
+      else if(gt==='summon'){const n=G.ally.filter(a=>!a.dead&&a.owner===P&&!a.bot).length;s=(n<4&&near>=1&&lastT(id)>15)?2.2:-9;rng=99;}
+      else if(gt==='pull'){s=(nSelf(g.R||8)>=3&&d>4&&lastT(id)>8)?1.4:-9;rng=(g.R||8)*.9;}
       else if(gt==='sac'){s=(hpR>.75&&near>=2&&G.t-cl>28)?2.4:-9;rng=99;}
       else{s=1.2;rng=8;}}
     else if(melee||K==='melee'||K==='cry'||K==='quake'){s=1+(id==='attack'?0:.6);rng=1.35+T.r;if(id==='whirl'||K==='cry'||K==='quake')s+=Math.min(3,(near-1)*.6);}
     else{/* 遠隔 */s=1.4;rng=9;if(K==='nova'||K==='meteor'||K==='divine'||K==='cone'||K==='chain'||S.ex&&(K==='arrow'&&/mult|rain|expl/.test(id)))s+=Math.min(3.5,(near-1)*.7);
       if(K==='nova'&&d>3.4)s-=2;if(K==='cone'&&d>4)s-=2;if(K==='beam'||K==='chain')s+=.3;}
+    /* 無駄撃ち防止：雑魚への高コスト技を避け、直前に撃った技は少し控えて使いまわす */
+    if(id!=='attack'&&s>0){
+      if(trivial&&mc>P.st.maxmp*.1&&K!=='buff'&&K!=='aura'&&K!=='heal')s-=3;
+      const lt=lastT(id);if(lt<.9&&K!=='buff'&&K!=='aura')s-=.7;else s+=Math.min(.5,lt*.05);
+      if((K==='meteor'||K==='divine'||K==='nova'||K==='cone'||K==='chain'||K==='beam')&&nT<2&&!big)s-=1.6;
+      if((K==='quake'||K==='cry'||id==='whirl')&&nSelf(3.4)<2&&!big)s-=2;
+    }
     /* 属性耐性 */
     let el=S.el;if(!el&&S.arr){try{const A=typeof S.arr==='function'?S.arr(lv):S.arr;el=A.el;}catch(e){}}
     if(!el&&K==='melee')el='phys';
