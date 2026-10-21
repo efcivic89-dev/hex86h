@@ -1791,6 +1791,7 @@ function revive(){
 }
 const BELT=[{t:'hp',k:'1',c:'#e23a2a',rg:'255,80,70',n:'生命'},{t:'mp',k:'2',c:'#3f70ff',rg:'90,140,255',n:'マナ'},{t:'rj',k:'3',c:'#b05cff',rg:'190,110,255',n:'活力'},{t:'big',k:'4',c:'#ff8a3a',rg:'255,150,70',n:'大生命'}];
 const PNAME={hp:'生命',mp:'マナ',rj:'活力',big:'大生命'};
+const POTMAX=99;
 function potPrice(t){return t==='hp'?25+P.lvl*7:t==='mp'?30+P.lvl*7:t==='rj'?70+P.lvl*14:55+P.lvl*12;}
 function drinkPot(t){
   if(P.dead)return;const n=P.pot[t]||0;
@@ -2061,7 +2062,7 @@ function autoPick(){
 function pickUp(it){
   if(TR.open&&it.kind==='item'){return;}
   if(it.kind==='gold'){P.gold+=it.amount;sfx('gold');ftext(P.x,P.y,'+'+it.amount+'G','#ffe46e',13);}
-  else if(it.kind==='pot'){if((P.pot[it.type]||0)>=12){return;}P.pot[it.type]=(P.pot[it.type]||0)+1;sfx('pick');msg(PNAME[it.type]+'のポーションを拾った');}
+  else if(it.kind==='pot'){if((P.pot[it.type]||0)>=POTMAX){return;}P.pot[it.type]=(P.pot[it.type]||0)+1;sfx('pick');msg(PNAME[it.type]+'のポーションを拾った');}
   else{const i=P.bag.indexOf(null);if(i<0){msg('持ち物がいっぱいだ','#ff6d58');sfx('err');return;}P.bag[i]=it.item;sfx('pick');UI.dirty=true;
     if(it.item.rar==='unique'||it.item.rar==='set'||it.item.rar==='elite'||it.item.rar==='class')jingle();}
   G.items.splice(G.items.indexOf(it),1);
@@ -6937,7 +6938,7 @@ Object.assign(MT,{
 Object.assign(BLDC,{gargoyle:['#5a5c64','90,92,100'],ember:['#ff7a30','255,120,40'],frostwraith:['#bfe8ff','190,232,255'],stormling:['#ffee66','255,238,100'],warded:['#e0d8f0','220,210,240'],mirrorknight:['#c8d0e0','200,208,224'],thornfiend:['#7a1a16','122,26,22'],duelist:['#8a1620','138,22,32'],soulleech:['#8a60c8','138,96,200'],priest:['#a02020','160,32,32'],blob:['#8a9a50','138,154,80']});
 /* ---- ペット「ともしび」 ---- */
 function petInit(){if(!P.pet)P.pet={on:true,rng:9,f:{gold:1,pot:1,normal:0,magic:1,rare:1,unique:1,set:1},eqonly:0};if(!HZ.pt)HZ.pt={x:P.x+1,y:P.y+1,v:0,cd:0,tg:null,msgT:0};}
-function petPass(it){const f=P.pet.f;if(it.kind==='gold')return !!f.gold;if(it.kind==='pot')return !!f.pot&&(P.pot[it.type]||0)<12;
+function petPass(it){const f=P.pet.f;if(it.kind==='gold')return !!f.gold;if(it.kind==='pot')return !!f.pot&&(P.pot[it.type]||0)<POTMAX;
   if(it.kind==='item'){if(!f[it.item.rar])return false;if(P.pet.eqonly&&!canEquip(it.item))return false;return P.bag.indexOf(null)>=0;}return false;}
 function petUpdate(dt){
   if(!P||P.dead||G.state==='title')return;petInit();const p=HZ.pt;
@@ -10954,7 +10955,7 @@ function shopHTML(){
   const M=G.merchant,hp=25+P.lvl*7,mp=30+P.lvl*7;
   return `<div class="ptitle"><span>${M.name}</span><span class="x" data-act="close">×</span></div>
   <div class="row"><span>所持金</span><span class="pt">${P.gold}G</span></div>
-  <div class="sub">ポーション（最大12個）</div>
+  <div class="sub">ポーション（最大99個）</div>
   ${BELT.map(b=>`<div class="shopi ${P.gold<potPrice(b.t)?'poor':''}" data-act="potbuy" data-t="${b.t}"><span style="color:${b.c}">${b.n}のポーション（所持 ${P.pot[b.t]||0}）</span><b>${potPrice(b.t)}G</b></div>`).join('')}
   <div class="sub">装備品（クリックで購入）</div>
   ${M.stock.map((it,i)=>it?`<div class="shopi ${P.gold<sellPrice(it)*4?'poor':''}" data-act="buy" data-i="${i}" data-tip="shop:${i}"><span style="color:${RC[it.rar]}">${it.name}</span><b>${sellPrice(it)*4}G</b></div>`:'').join('')||'<div style="color:var(--dim)">品切れ</div>'}
@@ -11037,7 +11038,7 @@ function panelAct(e,isRight){
   if(a==='sknode'){const id=el.dataset.id;if(!(P.skills[id]>0)||SK[id].kind==='passive')return;
     if(UI.fkSel!=null){const o=P.fk.indexOf(id);if(o>=0)P.fk[o]=null;P.fk[UI.fkSel]=id;msg(SK[id].n+' を F'+(UI.fkSel+1)+' に登録','#d1a74f');UI.fkSel=null;UI.dirty=true;sfx('equip');return;}
     if(UI.msSel!=null){const o=P.ms.indexOf(id);if(o>=0)P.ms[o]=null;P.ms[UI.msSel]=id;msg(SK[id].n+' を攻撃スロット'+(UI.msSel+1)+'に登録','#d1a74f');UI.msSel=null;UI.dirty=true;sfx('equip');return;}if(isRight)P.right=id;else P.left=id;UI.dirty=true;sfx('equip');return;}
-  if(a==='potbuy'){const t=el.dataset.t,pr=potPrice(t);if(P.gold<pr){msg('金貨が足りない','#ff6d58');sfx('err');return;}if((P.pot[t]||0)>=12){msg('これ以上持てない','#ff6d58');return;}P.gold-=pr;P.pot[t]=(P.pot[t]||0)+1;sfx('gold');UI.dirty=true;return;}
+  if(a==='potbuy'){const t=el.dataset.t,pr=potPrice(t);if(P.gold<pr){msg('金貨が足りない','#ff6d58');sfx('err');return;}if((P.pot[t]||0)>=POTMAX){msg('これ以上持てない','#ff6d58');return;}P.gold-=pr;P.pot[t]=(P.pot[t]||0)+1;sfx('gold');UI.dirty=true;return;}
   if(a==='buy'){const i=+el.dataset.i,it=G.merchant.stock[i];if(!it)return;const pr=sellPrice(it)*4;if(P.gold<pr){msg('金貨が足りない','#ff6d58');sfx('err');return;}
     const bi=P.bag.indexOf(null);if(bi<0){msg('持ち物がいっぱいだ','#ff6d58');return;}P.gold-=pr;P.bag[bi]=it;G.merchant.stock[i]=null;sfx('gold');hideTip();UI.dirty=true;return;}
   if(a==='eq'){const s=el.dataset.slot,it=eqGet(s);if(!it)return;const bi=P.bag.indexOf(null);if(bi<0){msg('持ち物がいっぱいだ','#ff6d58');return;}P.bag[bi]=it;eqSet(s,null);recalc();hideTip();UI.dirty=true;sfx('equip');return;}
@@ -13179,7 +13180,7 @@ function auPotions(){
   if(mpR<.2&&(P.pot.mp||0)>0&&!(P.potCd.mp>0))drinkPot('mp');
 }
 function auBuy(){
-  let n=0;for(const t of ['hp','mp']){while((P.pot[t]||0)<8&&P.gold>=potPrice(t)*2&&n<10){P.gold-=potPrice(t);P.pot[t]=(P.pot[t]||0)+1;n++;}}
+  let n=0;for(const t of ['hp','mp']){while((P.pot[t]||0)<20&&P.gold>=potPrice(t)*2&&n<20){P.gold-=potPrice(t);P.pot[t]=(P.pot[t]||0)+1;n++;}}
   if(n){sfx('gold');msg(`ポーションを${n}本買い足した`,'#ffe46e');UI.dirty=true;}
 }
 /* ---- クエスト処理（村長の前で） ---- */
@@ -13208,7 +13209,7 @@ function auSkipOk(o){return !(o&&o.auSkip>G.t);}
 function auObjective(){
   const O=(x,y,name,fn,o)=>({x,y,name,fn,o});
   /* 拾う */
-  {let bi=null,bd=7;for(const it of G.items){if(!auSkipOk(it))continue;if(!auPickOk(it))continue;if(it.kind==='item'&&P.bag.indexOf(null)<0)continue;if(it.kind==='pot'&&(P.pot[it.type]||0)>=12)continue;const d=dst(P.x,P.y,it.x,it.y);if(d<bd&&vis[Math.floor(it.y)*MW+Math.floor(it.x)]){bd=d;bi=it;}}
+  {let bi=null,bd=7;for(const it of G.items){if(!auSkipOk(it))continue;if(!auPickOk(it))continue;if(it.kind==='item'&&P.bag.indexOf(null)<0)continue;if(it.kind==='pot'&&(P.pot[it.type]||0)>=POTMAX)continue;const d=dst(P.x,P.y,it.x,it.y);if(d<bd&&vis[Math.floor(it.y)*MW+Math.floor(it.x)]){bd=d;bi=it;}}
     if(bi)return O(bi.x,bi.y,'拾う',()=>{pickUp(bi);},bi);}
   if(G.cave){
     const b=G.mon.find(m=>!m.dead&&m.boss);
