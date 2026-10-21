@@ -11231,6 +11231,8 @@ $('overlay').addEventListener('click',e=>{
   const el=e.target.closest('[data-act]');if(!el)return;audioInit();sfx('click');const a=el.dataset.act;
   if(a==='new'){showClassSelect(false);}
   else if(a==='maxmode'){showClassSelect(true);}
+  else if(a==='code_open'){showCodeEntry();}
+  else if(a==='code_ok'){applyCode();}
   else if(a==='cls'){mobAutoFull();startGameUI(null,el.dataset.m==='1',el.dataset.c);}
   else if(a==='cont'){mobAutoFull();const sv=loadSave();if(sv)startGameUI(sv);else showClassSelect(false);}
   else if(a==='gfx'){GFX=+el.dataset.n;try{localStorage.setItem('fs_gfx',String(GFX));}catch(e){}resize();if(G.state==='title')showTitle();else if(G.paused)showPause();}
@@ -11295,6 +11297,7 @@ async function netOnUser(u){
   if(u){
     try{
       NET.member=(await NET.db.ref('members/'+u.uid).once('value')).exists();
+      if(!NET.member){try{await NET.db.ref('members/'+u.uid).set('free');NET.member=true;}catch(e){NET.member=false;}}
       if(NET.member){
         const ref=NET.db.ref('players/'+u.uid+'/profile');
         const p=(await ref.once('value')).val()||{};
@@ -11427,17 +11430,36 @@ async function showBoard(){
 /* ====== 招待制（クローズドサーバー） ====== */
 function showInvite(msgT){
   NET.form=true;
-  showOverlay(`<div class="card"><h2>招待コードの入力</h2><p style="font-size:12px">このサーバーは招待制です。管理者から受け取った招待コードを入力してください。</p>
-  <input class="nin" id="n_code" maxlength="40" placeholder="招待コード" autocomplete="off">
+  showOverlay(`<div class="card"><h2>紹介コード（任意）</h2><p style="font-size:12px">紹介コードをお持ちの方は入力してください。空欄のまま「参加する」でも遊べます（コードは後からタイトルの「🎟 紹介コード」で入力できます）。</p>
+  <input class="nin" id="n_code" maxlength="40" placeholder="紹介コード（空欄でもOK）" autocomplete="off">
   <p id="n_msg" class="nmsg">${nEsc(msgT||'')}</p>
-  <div class="btns"><button class="btn" data-act="n_join">参加する</button><button class="btn ghost" data-act="n_out">ログアウト</button></div></div>`);
+  <div class="btns"><button class="btn pri" data-act="n_join">参加する</button><button class="btn ghost" data-act="n_out">ログアウト</button></div></div>`);
 }
 async function netJoin(){
   const code=((($('n_code')||{}).value)||'').trim();
-  if(!code){nSay('コードを入力してください',true);return;}
+  if(code==='最強'||code==='最強モード'){NET.form=false;showClassSelect(true);return;}
   nSay('確認中…');
-  try{await NET.db.ref('members/'+NET.user.uid).set(code);}catch(e){nSay('招待コードが違います',true);return;}
+  try{await NET.db.ref('members/'+NET.user.uid).set(code||'free');}
+  catch(e){nSay(code?'紹介コードが違います':'コードなしの参加は、サーバー側の設定がまだ対応していません（管理者に連絡してください）',true);return;}
   NET.form=false;await netOnUser(NET.user);
+}
+/* 紹介コード入力（タイトル／ログイン後。「最強」で装備最強モード） */
+function showCodeEntry(msgT){
+  NET.form=true;
+  showOverlay(`<div class="card"><h2>🎟 紹介コード</h2><p style="font-size:12px">紹介コードを入力してください。${NET.ok&&NET.user?'':'（コードの登録はログイン後に有効になります）'}</p>
+  <input class="nin" id="n_code" maxlength="40" placeholder="紹介コード" autocomplete="off">
+  <p id="n_msg" class="nmsg">${nEsc(msgT||'')}</p>
+  <div class="btns"><button class="btn pri" data-act="code_ok">決定</button><button class="btn ghost" data-act="back">戻る</button></div></div>`);
+  setTimeout(()=>{const e=$('n_code');if(e)e.focus();},50);
+}
+async function applyCode(){
+  const code=((($('n_code')||{}).value)||'').trim();
+  if(!code){nSay('コードを入力してください',true);return;}
+  if(code==='最強'||code==='最強モード'){NET.form=false;showClassSelect(true);return;}
+  if(!(NET.ok&&NET.user&&NET.db)){nSay('ログインしてから入力してください',true);return;}
+  nSay('確認中…');
+  try{await NET.db.ref('members/'+NET.user.uid).set(code);}catch(e){nSay('紹介コードが違います',true);return;}
+  NET.form=false;await netOnUser(NET.user);showTitle();
 }
 /* ====== 共同クエスト（サーバー全員で進める） ====== */
 const QST={defs:null,tot:{},own:{},done:{},pend:{},tm:0,busy:0,el:null,ref:0,err:'',say:''};
@@ -11549,7 +11571,7 @@ function netAct(a,el){
     if(NET.arm!==id){NET.arm=id;showChars();}
     else{NET.arm=null;NET.db.ref('players/'+NET.user.uid+'/characters/'+id).remove().then(showChars,e=>showOverlay(`<div class="card"><h2>削除失敗</h2><p>${nEsc(netErr(e))}</p><div class="btns"><button class="btn ghost" data-act="back">戻る</button></div></div>`));}}
 }
-$('overlay').addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target.classList&&e.target.classList.contains('nin')){e.preventDefault();if(e.target.id==='n_code')netJoin();else netDo((NET.user&&NET.user.isAnonymous)?'signup':'login');}});
+$('overlay').addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target.classList&&e.target.classList.contains('nin')){e.preventDefault();if(e.target.id==='n_code'){if(document.querySelector('[data-act="code_ok"]'))applyCode();else netJoin();}else netDo((NET.user&&NET.user.isAnonymous)?'signup':'login');}});
 window.addEventListener('pointerdown',()=>{if(G.loading&&LD.i>LD.n*.08)LD.i=LD.n;},true);
 window.addEventListener('pagehide',()=>{try{if(G.state==='play'&&P&&!G.paused){saveGame();}netFlush();}catch(e){}});
 
@@ -11560,8 +11582,8 @@ function showTitle(){
   <p class="tcatch">地下墓所の底で、堕天の魔王が目を覚ました。<br>魔物を斬り、伝説の装備を手にせよ。</p></div><div class="tr">
   <div class="btns">${(NET.ok&&NET.member!==true)?'':'<button class="btn pri" data-act="new">新しい冒険をはじめる</button>'}
   ${(sv&&!NET.ok)?`<button class="btn" data-act="cont">続きから（${(CLS[sv.cls]||CLS.warrior).n} Lv${sv.lvl}・第${sv.floor}層）</button>`:''}
-  <button class="btn" data-act="maxmode" style="border-color:var(--elite);color:var(--elite)">装備最強モード</button>
-  <button class="btn" data-act="bot_open" data-from="title" style="border-color:#7fe0d0">🤖 ロボ仲間</button></div>
+  <button class="btn" data-act="bot_open" data-from="title" style="border-color:#7fe0d0">🤖 ロボ仲間</button>
+  <button class="btn ghost" data-act="code_open">🎟 紹介コード</button></div>
   ${netTitleBtns()}
   <details class="tset" id="tset" ${TSET_OPEN?'open':''}><summary>⚙ 設定・操作方法</summary>
   <div class="tgrid"><button class="btn ghost" data-act="help">操作方法</button>${mobBtnHtml()}</div>${monxHtml()}</details></div></div>`);
