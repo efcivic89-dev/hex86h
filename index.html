@@ -13483,6 +13483,7 @@ function auFrontier(){
 }
 /* ---- 目的地の決定 ---- */
 function auSkipOk(o){return !(o&&o.auSkip>G.t);}
+function auFarRep(e){return !!(e&&G.bossDead&&G.stairs&&dst(P.x,P.y,e.x,e.y)>60&&dst(P.x,P.y,e.x,e.y)>dst(P.x,P.y,G.stairs.x,G.stairs.y)*2);}
 function auObjective(){
   const O=(x,y,name,fn,o)=>({x,y,name,fn,o});
   /* 拾う */
@@ -13496,7 +13497,9 @@ function auObjective(){
   const L=vqGet(),q=id=>L.find(x=>x.id===id),elder=auNpc('elder'),healer=auNpc('healer'),hpR=P.hp/P.st.maxhp;
   if(healer&&hpR<.45&&auSkipOk(healer)&&dst(P.x,P.y,healer.x,healer.y)<26)return O(healer.x,healer.y,'癒し手のところへ',()=>{P.hp=P.st.maxhp;P.mp=P.st.maxmp;P.pois=null;sfx('pot');msg('傷が癒えた','#7aff9a');pulse(P.x,P.y,'120,255,160',230,.5,.9);},healer);
   if(G.merchant&&!AU.bought&&auSkipOk(G.merchant)&&((P.pot.hp||0)<3||(P.pot.mp||0)<2)&&P.gold>potPrice('hp')*3&&dst(P.x,P.y,G.merchant.x,G.merchant.y)<30)return O(G.merchant.x,G.merchant.y,'商人のところへ',()=>{auBuy();AU.bought=1;},G.merchant);
-  if(elder&&auSkipOk(elder)&&L.some(x=>x.st===0||x.st===2)){const rep=L.some(x=>x.st===2);if(rep||dst(P.x,P.y,elder.x,elder.y)<40)return O(elder.x,elder.y,rep?'村長に報告':'村長に依頼を聞く',()=>auElder(),elder);}
+  if(elder&&auSkipOk(elder)&&L.some(x=>x.st===0||x.st===2)){const rep=L.some(x=>x.st===2),far=auFarRep(elder);
+    if(rep&&far&&AU.farMsg!==G.floor+':'+G.diff){AU.farMsg=G.floor+':'+G.diff;msg('村長の報告先が遠いので、先に階段へ進みます（報酬は戻って受け取れます）','#ffd890');}
+    if((rep&&!far)||(!rep&&dst(P.x,P.y,elder.x,elder.y)<40))return O(elder.x,elder.y,rep?'村長に報告':'村長に依頼を聞く',()=>auElder(),elder);}
   const qc=q('chest');if(qc&&qc.st===1){let bo=null,bd=1e9;for(const o of G.objs){if(o.kind!=='chest'||o.open||!auSkipOk(o))continue;const d=dst(P.x,P.y,o.x,o.y);if(d<bd){bd=d;bo=o;}}
     if(bo)return O(bo.x,bo.y,'宝箱を探す',()=>activate(bo),bo);}
   const qh=q('hid');if(qh&&qh.st===1){const c=caveObj();if(c&&auSkipOk(c))return O(c.x,c.y,'洞窟へ向かう',()=>activate(c),c);}
@@ -13508,7 +13511,7 @@ function auObjective(){
     if(!lvOk||(qk&&qk.st===1&&qk.have<qk.need)){const f=auFrontier();if(f)return O(f[0],f[1],'探索（レベル上げ）');}
     if(bossRoom)return O(bossRoom.cx,bossRoom.cy,'最奥へ向かう');
   }
-  if(G.stairs&&!(elder&&L.some(x=>x.st===2)))return O(G.stairs.x,G.stairs.y,'次の階層へ',()=>{if(G.floor===FLOORS){auNote('制覇！');AU.on=false;}else activate(G.stairs);});
+  if(G.stairs&&!(elder&&L.some(x=>x.st===2)&&!auFarRep(elder)))return O(G.stairs.x,G.stairs.y,'次の階層へ',()=>{if(G.floor===FLOORS){auNote('制覇！');AU.on=false;}else activate(G.stairs);});
   const f=auFrontier();if(f)return O(f[0],f[1],'探索');
   return null;
 }
@@ -14195,7 +14198,7 @@ function galShot(kind,spec,cw,ch,scl,face,eq,cls){
   }finally{ctx=sv.ctx;P=sv.P;W=sv.W;H=sv.H;cam.x=sv.cx;cam.y=sv.cy;G.t=sv.t;}
   return c.toDataURL();
 }
-window.__dbg={bbPrune,BOT,botNew,botSpawn,bagTidy,tidyWeak,autoBest,stashOpen,ev5Fire,EV5,ev5Tick,evFire,HEV,evTick,netPack,netToSv,enterFloor,genItem,botNew,botCatchUp,botSpawn,botAI,botStart,botAutoGear,BOT,botSp,m3dEquip,AUPK_LIST,showAuPick,auPickOk,MSHR,LD,EXV,AU,w2s,SX:()=>SX,SY:()=>SY,M3D,auToggle,auTick,UI,mapRef:()=>({map,WD,FD,tint,deco,TILES}),GLP,los,snapCam,EXS,EXD,EXI,exStart,exAssign,MT,ICO,icoCv,ICM,s3Cast,WFX,wfxAt,SK,CLS,HPC,pondTick,pondAt,PND,coachGo,saveGame,loadSave,EV4,ev4Fire,explode,spawnProj,FX2,fx2Spr,fx2Painter,fx2FireSpr,EV3,ev3Fire,ev3Use,ev3Give,ev3SL,wxSet,wxLightning,get HD3ON(){return HD3ON;},set HD3ON(v){HD3ON=v;},galShot,AREAS,evFire,evTick,HEV,stalkTick,mpAvatar,ultDrop,ultDropItem,hurtPlayer,deathBlast,GX_ZONES,isWall,los,nearestFloor,AI,ACT,spawnCurse,summonAt,raiseHostile,poisonP,detonate,bossSpecial,AREAS,THEMES,MT,makeMon,spawnAll,genLevel,CLS,SK,BASES,UNIQ,SETS,BUFF,mkItem,swapWeapons,newPlayer,itemHTML,eqGet,eqSet,showClassSelect,G,get P(){return P;},startGame,update,render,castSkill,genItem,recalc,enterFloor,killMon,hudHit,drinkPot,activate,findHoverMon,addAlly,raiseAlly,necroSkill,useShrine,spawnExtras,updateAllies,showWaypoints,corpseNear,SHRINES,scoutToggle,warpToBoss,scoutCount,guardCount,chaosCast,convertCorpse,convCount,confMon,NET,showTitle,netPack,netToSv,netFlush};
+window.__dbg={killMon,coachGo,vqGet,bbPrune,BOT,botNew,botSpawn,bagTidy,tidyWeak,autoBest,stashOpen,ev5Fire,EV5,ev5Tick,evFire,HEV,evTick,netPack,netToSv,enterFloor,genItem,botNew,botCatchUp,botSpawn,botAI,botStart,botAutoGear,BOT,botSp,m3dEquip,AUPK_LIST,showAuPick,auPickOk,MSHR,LD,EXV,AU,w2s,SX:()=>SX,SY:()=>SY,M3D,auToggle,auTick,UI,mapRef:()=>({map,WD,FD,tint,deco,TILES}),GLP,los,snapCam,EXS,EXD,EXI,exStart,exAssign,MT,ICO,icoCv,ICM,s3Cast,WFX,wfxAt,SK,CLS,HPC,pondTick,pondAt,PND,coachGo,saveGame,loadSave,EV4,ev4Fire,explode,spawnProj,FX2,fx2Spr,fx2Painter,fx2FireSpr,EV3,ev3Fire,ev3Use,ev3Give,ev3SL,wxSet,wxLightning,get HD3ON(){return HD3ON;},set HD3ON(v){HD3ON=v;},galShot,AREAS,evFire,evTick,HEV,stalkTick,mpAvatar,ultDrop,ultDropItem,hurtPlayer,deathBlast,GX_ZONES,isWall,los,nearestFloor,AI,ACT,spawnCurse,summonAt,raiseHostile,poisonP,detonate,bossSpecial,AREAS,THEMES,MT,makeMon,spawnAll,genLevel,CLS,SK,BASES,UNIQ,SETS,BUFF,mkItem,swapWeapons,newPlayer,itemHTML,eqGet,eqSet,showClassSelect,G,get P(){return P;},startGame,update,render,castSkill,genItem,recalc,enterFloor,killMon,hudHit,drinkPot,activate,findHoverMon,addAlly,raiseAlly,necroSkill,useShrine,spawnExtras,updateAllies,showWaypoints,corpseNear,SHRINES,scoutToggle,warpToBoss,scoutCount,guardCount,chaosCast,convertCorpse,convCount,confMon,NET,showTitle,netPack,netToSv,netFlush};
 })();
 </script>
 </body>
