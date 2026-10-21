@@ -11164,8 +11164,8 @@ function netJ(x){try{return JSON.parse(x);}catch(e){return null;}}
 function netPack(s,now){
   const cname=(NET.dn||'冒険者').slice(0,16)||'冒険者';
   return {name:cname,class:String(s.cls||'warrior').slice(0,32),level:Math.max(1,Math.min(99,s.lvl|0)),exp:Math.max(0,+s.xp||0),
-    stats:JSON.stringify({str:s.str,dex:s.dex,vit:s.vit,ene:s.ene,statPts:s.statPts,skillPts:s.skillPts,gold:s.gold,kills:s.kills,pot:s.pot,left:s.left,right:s.right,fk:s.fk,ms:s.ms,sw:s.sw}),
-    skills:JSON.stringify(s.skills||{}),inventory:JSON.stringify(s.bag||[]),equipment:JSON.stringify({eq:s.eq||{},alt:s.alt||{}}),
+    stats:JSON.stringify({str:s.str,dex:s.dex,vit:s.vit,ene:s.ene,statPts:s.statPts,skillPts:s.skillPts,gold:s.gold,kills:s.kills,pot:s.pot,left:s.left,right:s.right,fk:s.fk,ms:s.ms,sw:s.sw,evi:s.evi||{},pet:s.pet||null}),
+    skills:JSON.stringify(s.skills||{}),inventory:JSON.stringify(s.bag||[]),equipment:JSON.stringify({eq:s.eq||{},alt:s.alt||{},stash:s.stash||[]}),
     progress:JSON.stringify({diff:s.diff,floor:s.floor,wp:s.wp||[],vq:s.vq||{}}),updatedAt:firebase.database.ServerValue.TIMESTAMP,createdAt:s.cre||now};
 }
 function netSave(s){
@@ -11183,8 +11183,13 @@ function netFlush(){
 }
 function netToSv(c,id){
   const st=netJ(c.stats)||{},pg=netJ(c.progress)||{},eq=netJ(c.equipment)||{};
-  const sv=Object.assign({},st,{lvl:c.level,xp:c.exp,cls:c.class,skills:netJ(c.skills)||{},bag:netJ(c.inventory)||[],eq:eq.eq||{},alt:eq.alt||{weapon:null,shield:null},diff:pg.diff||0,floor:pg.floor||1,wp:pg.wp||[],vq:pg.vq||{},cid:id,cre:c.createdAt});
+  const sv=Object.assign({},st,{lvl:c.level,xp:c.exp,cls:c.class,skills:netJ(c.skills)||{},bag:netJ(c.inventory)||[],eq:eq.eq||{},alt:eq.alt||{weapon:null,shield:null},stash:Array.isArray(eq.stash)?eq.stash:[],diff:pg.diff||0,floor:pg.floor||1,wp:pg.wp||[],vq:pg.vq||{},cid:id,cre:c.createdAt});
   while(sv.bag.length<250)sv.bag.push(null);
+  /* 以前のクラウド保存にはチケット(evi)・ペット・倉庫が入っていない：同じキャラの端末内セーブから補う */
+  try{const loc=loadSave();if(loc&&loc.cid===id){
+    if(!sv.evi||!Object.keys(sv.evi).some(k=>sv.evi[k]>0))if(loc.evi)sv.evi=loc.evi;
+    if(!sv.pet&&loc.pet)sv.pet=loc.pet;
+    if((!sv.stash||!sv.stash.some(x=>x))&&Array.isArray(loc.stash))sv.stash=loc.stash;}}catch(e){}
   return sv;
 }
 /* ---- 画面 ---- */
@@ -13952,7 +13957,7 @@ function galShot(kind,spec,cw,ch,scl,face,eq,cls){
   }finally{ctx=sv.ctx;P=sv.P;W=sv.W;H=sv.H;cam.x=sv.cx;cam.y=sv.cy;G.t=sv.t;}
   return c.toDataURL();
 }
-window.__dbg={enterFloor,genItem,botNew,botCatchUp,botSpawn,botAI,botStart,botAutoGear,BOT,botSp,m3dEquip,AUPK_LIST,showAuPick,auPickOk,MSHR,LD,EXV,AU,w2s,SX:()=>SX,SY:()=>SY,M3D,auToggle,auTick,UI,mapRef:()=>({map,WD,FD,tint,deco,TILES}),GLP,los,snapCam,EXS,EXD,EXI,exStart,exAssign,MT,ICO,icoCv,ICM,s3Cast,WFX,wfxAt,SK,CLS,HPC,pondTick,pondAt,PND,coachGo,saveGame,loadSave,EV4,ev4Fire,explode,spawnProj,FX2,fx2Spr,fx2Painter,fx2FireSpr,EV3,ev3Fire,ev3Use,ev3Give,ev3SL,wxSet,wxLightning,get HD3ON(){return HD3ON;},set HD3ON(v){HD3ON=v;},galShot,AREAS,evFire,evTick,HEV,stalkTick,mpAvatar,ultDrop,ultDropItem,hurtPlayer,deathBlast,GX_ZONES,isWall,los,nearestFloor,AI,ACT,spawnCurse,summonAt,raiseHostile,poisonP,detonate,bossSpecial,AREAS,THEMES,MT,makeMon,spawnAll,genLevel,CLS,SK,BASES,UNIQ,SETS,BUFF,mkItem,swapWeapons,newPlayer,itemHTML,eqGet,eqSet,showClassSelect,G,get P(){return P;},startGame,update,render,castSkill,genItem,recalc,enterFloor,killMon,hudHit,drinkPot,activate,findHoverMon,addAlly,raiseAlly,necroSkill,useShrine,spawnExtras,updateAllies,showWaypoints,corpseNear,SHRINES,scoutToggle,warpToBoss,scoutCount,guardCount,chaosCast,convertCorpse,convCount,confMon,NET,showTitle,netPack,netToSv,netFlush};
+window.__dbg={netPack,netToSv,enterFloor,genItem,botNew,botCatchUp,botSpawn,botAI,botStart,botAutoGear,BOT,botSp,m3dEquip,AUPK_LIST,showAuPick,auPickOk,MSHR,LD,EXV,AU,w2s,SX:()=>SX,SY:()=>SY,M3D,auToggle,auTick,UI,mapRef:()=>({map,WD,FD,tint,deco,TILES}),GLP,los,snapCam,EXS,EXD,EXI,exStart,exAssign,MT,ICO,icoCv,ICM,s3Cast,WFX,wfxAt,SK,CLS,HPC,pondTick,pondAt,PND,coachGo,saveGame,loadSave,EV4,ev4Fire,explode,spawnProj,FX2,fx2Spr,fx2Painter,fx2FireSpr,EV3,ev3Fire,ev3Use,ev3Give,ev3SL,wxSet,wxLightning,get HD3ON(){return HD3ON;},set HD3ON(v){HD3ON=v;},galShot,AREAS,evFire,evTick,HEV,stalkTick,mpAvatar,ultDrop,ultDropItem,hurtPlayer,deathBlast,GX_ZONES,isWall,los,nearestFloor,AI,ACT,spawnCurse,summonAt,raiseHostile,poisonP,detonate,bossSpecial,AREAS,THEMES,MT,makeMon,spawnAll,genLevel,CLS,SK,BASES,UNIQ,SETS,BUFF,mkItem,swapWeapons,newPlayer,itemHTML,eqGet,eqSet,showClassSelect,G,get P(){return P;},startGame,update,render,castSkill,genItem,recalc,enterFloor,killMon,hudHit,drinkPot,activate,findHoverMon,addAlly,raiseAlly,necroSkill,useShrine,spawnExtras,updateAllies,showWaypoints,corpseNear,SHRINES,scoutToggle,warpToBoss,scoutCount,guardCount,chaosCast,convertCorpse,convCount,confMon,NET,showTitle,netPack,netToSv,netFlush};
 })();
 </script>
 </body>
