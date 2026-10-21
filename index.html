@@ -1542,7 +1542,7 @@ let GFX=-1,HQ=false;try{if(!localStorage.getItem('fs_gfx_m2')){localStorage.setI
 function gfxLv(){if(GFX>=0)return GFX;try{return 2;}catch(e){return 2;}}
 let VZ=1.7;try{if(matchMedia('(pointer:coarse)').matches)VZ=.95;}catch(e){}try{const v=+localStorage.getItem('fs_vz3');if(v>=.7&&v<=2)VZ=v;}catch(e){}
 const monScale=(n,min)=>Math.max(min==null?1:min,Math.round(n*MONX/10*MONBOOST));
-function showPause(){showOverlay('<div class="card"><h2>一時停止</h2><div class="btns"><button class="btn" data-act="resume">ゲームに戻る</button><button class="btn ghost" data-act="help">操作方法</button><button class="btn ghost" data-act="gltog">描画: 切替</button><button class="btn ghost" data-act="m3dtog">3Dモデル表示: '+(M3D.on?'ON':'OFF')+'</button><button class="btn" data-act="bot_open" data-from="pause" style="border-color:#7fe0d0">🤖 ロボ仲間（R）</button>'+'<button class="btn" data-act="au_full" style="border-color:#9fe0ff">⚙ オート攻略（O）: '+(AU.on&&AU.mode==="full"?"ON":"OFF")+'</button><button class="btn ghost" data-act="au_fight">⚙ オート戦闘のみ: '+(AU.on&&AU.mode==="fight"?"ON":"OFF")+'</button>'+mobBtnHtml()+(MP.playing?'<button class="btn ghost" data-act="n_mp_leave">協力プレイを終了してタイトルへ</button>':'')+'</div>'+monxHtml()+'</div>');}
+function showPause(){showOverlay('<div class="card"><h2>一時停止</h2><div class="btns"><button class="btn" data-act="resume">ゲームに戻る</button><button class="btn ghost" data-act="help">操作方法</button><button class="btn ghost" data-act="gltog">描画: 切替</button><button class="btn ghost" data-act="m3dtog">3Dモデル表示: '+(M3D.on?'ON':'OFF')+'</button><button class="btn" data-act="bot_open" data-from="pause" style="border-color:#7fe0d0">🤖 ロボ仲間（R）</button>'+'<button class="btn" data-act="au_full" style="border-color:#9fe0ff">⚙ オート攻略（O）: '+(AU.on&&AU.mode==="full"?"ON":"OFF")+'</button><button class="btn ghost" data-act="au_fight">⚙ オート戦闘のみ: '+(AU.on&&AU.mode==="fight"?"ON":"OFF")+'</button>'+'<button class="btn ghost" data-act="au_pkopen">🎒 オートで拾う物の設定</button>'+mobBtnHtml()+(MP.playing?'<button class="btn ghost" data-act="n_mp_leave">協力プレイを終了してタイトルへ</button>':'')+'</div>'+monxHtml()+'</div>');}
 function monxHtml(){let b='';for(let i=1;i<=10;i++)b+=`<button class="${MONX===i?'on':''}" data-act="monx" data-n="${i}">${i}</button>`;
   return `<div class="setrow"><div class="setl"><span>敵の数</span><b>${MONX}倍</b></div><div class="seg" style="grid-template-columns:repeat(5,1fr)">${b}</div><div class="setn">※ 新しい階層から反映（ホードは即時）</div></div>`+vzHtml();}
 function vzHtml(){let b='';for(const v of [.75,.95,1.3,1.7,2])b+=`<button class="${Math.abs(VZ-v)<.01?'on':''}" data-act="vz" data-n="${v}">${v===.75?'最広':v===.95?'広い':v===2?'最小':v+'x'}</button>`;
@@ -10959,6 +10959,12 @@ $('overlay').addEventListener('click',e=>{
   else if(a==='back'){showTitle();}
   else if(a==='resume'){G.paused=false;hideOverlay();}
   else if(a==='m3dtog'){m3dSet(!M3D.on);if(G.state==='title')showTitle();else if(G.paused)showPause();}
+  else if(a==='au_pkopen'||a==='au_pkpause'){showAuPick();}
+  else if(a==='au_pk'){const id=el.dataset.k;AU.pk[id]=AU.pk[id]?0:1;auPkSave();showAuPick();}
+  else if(a==='au_gm'){const i=AUPK_GM.indexOf(AU.pk.goldMin||0);AU.pk.goldMin=AUPK_GM[(i+1)%AUPK_GM.length];auPkSave();showAuPick();}
+  else if(a==='au_pkall'){Object.assign(AU.pk,{normal:0,magic:1,rare:1,unique:1,set:1,elite:1,class:1});auPkSave();showAuPick();}
+  else if(a==='au_pkrare'){Object.assign(AU.pk,{normal:0,magic:0,rare:1,unique:1,set:1,elite:1,class:1});auPkSave();showAuPick();}
+  else if(a==='au_pkback'){showPause();}
   else if(a==='au_full'){auToggle(!(AU.on&&AU.mode==='full'),'full');G.paused=false;hideOverlay();}
   else if(a==='au_fight'){auToggle(!(AU.on&&AU.mode==='fight'),'fight');G.paused=false;hideOverlay();}
   else if(a==='revive'){revive();}
@@ -12935,6 +12941,25 @@ function drawEV3(){
    mode: 'full'=戦闘＋クエスト＋ダンジョン攻略  'fight'=戦闘のみ（移動は手動） */
 const AU={on:false,mode:'full',t:0,fld:new Int16Array(NIDX),fk:'',ft:-9,ef:new Int16Array(NIDX),et:-9,dest:null,dn:'',lx:0,ly:0,st:0,wait:0,note:'',noteT:0,tgt:null,avoid:0,bought:0,prevFloor:-1};
 try{AU.mode=localStorage.getItem('fs_auto_mode')||'full';}catch(e){}
+/* 拾うアイテムの設定 */
+const AUPK_DEF={gold:1,goldMin:10,pot:1,normal:0,magic:1,rare:1,unique:1,set:1,elite:1,class:1};
+AU.pk=Object.assign({},AUPK_DEF);
+try{const j=JSON.parse(localStorage.getItem('fs_auto_pick')||'null');if(j)Object.assign(AU.pk,j);}catch(e){}
+function auPkSave(){try{localStorage.setItem('fs_auto_pick',JSON.stringify(AU.pk));}catch(e){}}
+function auPickOk(it){
+  const k=AU.pk;
+  if(it.kind==='item')return !!k[it.item.rar];
+  if(it.kind==='gold')return !!k.gold&&it.amount>=(k.goldMin||0);
+  if(it.kind==='pot')return !!k.pot;
+  return true;
+}
+const AUPK_LIST=[['gold','💰 ゴールド'],['pot','🧪 ポーション'],['normal','通常装備'],['magic','魔法装備'],['rare','レア装備'],['unique','ユニーク'],['set','セット'],['elite','エリート'],['class','職業専用']];
+const AUPK_GM=[0,10,50,100,300,1000];
+function showAuPick(){
+  const k=AU.pk;
+  const rows=AUPK_LIST.map(([id,nm])=>{const c=RC[id]||'#e8e2d2';return '<button class="btn'+(k[id]?'':' ghost')+'" data-act="au_pk" data-k="'+id+'" style="text-align:left;'+(k[id]?'border-color:'+c:'')+'"><span style="color:'+c+'">'+(k[id]?'☑ ':'☐ ')+nm+'</span></button>';}).join('');
+  showOverlay('<div class="card" style="max-height:92vh;overflow:auto"><h2>オートで拾う物</h2><div style="font-size:12px;color:#cdbf9f;margin-bottom:8px">チェックした種類だけオート攻略・オート戦闘が拾いに行きます。手動操作には影響しません。</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px">'+rows+'</div><div class="btns"><button class="btn ghost" data-act="au_gm">ゴールド最低額: '+(k.goldMin||0)+' 以上</button><button class="btn ghost" data-act="au_pkall">魔法以上すべてON（通常OFF）</button><button class="btn ghost" data-act="au_pkrare">レア以上のみ</button><button class="btn" data-act="au_pkback">戻る</button></div></div>');
+}
 const AU_EL={fire:'fire',cold:'cold',light:'light',pois:'pois',psn:'pois',arcane:'arc',shadow:'arc',phys:'phys'};
 function auToggle(on,mode){
   AU.on=on==null?!AU.on:!!on;if(mode){AU.mode=mode;try{localStorage.setItem('fs_auto_mode',mode);}catch(e){}}
@@ -13047,7 +13072,7 @@ function auSkipOk(o){return !(o&&o.auSkip>G.t);}
 function auObjective(){
   const O=(x,y,name,fn,o)=>({x,y,name,fn,o});
   /* 拾う */
-  {let bi=null,bd=7;for(const it of G.items){if(!auSkipOk(it))continue;if(it.kind==='item'&&(it.item.rar==='normal'||P.bag.indexOf(null)<0))continue;if(it.kind==='gold'&&it.amount<10)continue;if(it.kind==='pot'&&(P.pot[it.type]||0)>=12)continue;const d=dst(P.x,P.y,it.x,it.y);if(d<bd&&vis[Math.floor(it.y)*MW+Math.floor(it.x)]){bd=d;bi=it;}}
+  {let bi=null,bd=7;for(const it of G.items){if(!auSkipOk(it))continue;if(!auPickOk(it))continue;if(it.kind==='item'&&P.bag.indexOf(null)<0)continue;if(it.kind==='pot'&&(P.pot[it.type]||0)>=12)continue;const d=dst(P.x,P.y,it.x,it.y);if(d<bd&&vis[Math.floor(it.y)*MW+Math.floor(it.x)]){bd=d;bi=it;}}
     if(bi)return O(bi.x,bi.y,'拾う',()=>{pickUp(bi);},bi);}
   if(G.cave){
     const b=G.mon.find(m=>!m.dead&&m.boss);
@@ -13751,7 +13776,7 @@ function galShot(kind,spec,cw,ch,scl,face,eq,cls){
   }finally{ctx=sv.ctx;P=sv.P;W=sv.W;H=sv.H;cam.x=sv.cx;cam.y=sv.cy;G.t=sv.t;}
   return c.toDataURL();
 }
-window.__dbg={MSHR,LD,EXV,AU,w2s,SX:()=>SX,SY:()=>SY,M3D,auToggle,auTick,UI,mapRef:()=>({map,WD,FD,tint,deco,TILES}),GLP,los,snapCam,EXS,EXD,EXI,exStart,exAssign,MT,ICO,icoCv,ICM,s3Cast,WFX,wfxAt,SK,CLS,HPC,pondTick,pondAt,PND,coachGo,saveGame,loadSave,EV4,ev4Fire,explode,spawnProj,FX2,fx2Spr,fx2Painter,fx2FireSpr,EV3,ev3Fire,ev3Use,ev3Give,ev3SL,wxSet,wxLightning,get HD3ON(){return HD3ON;},set HD3ON(v){HD3ON=v;},galShot,AREAS,evFire,evTick,HEV,stalkTick,mpAvatar,ultDrop,ultDropItem,hurtPlayer,deathBlast,GX_ZONES,isWall,los,nearestFloor,AI,ACT,spawnCurse,summonAt,raiseHostile,poisonP,detonate,bossSpecial,AREAS,THEMES,MT,makeMon,spawnAll,genLevel,CLS,SK,BASES,UNIQ,SETS,BUFF,mkItem,swapWeapons,newPlayer,itemHTML,eqGet,eqSet,showClassSelect,G,get P(){return P;},startGame,update,render,castSkill,genItem,recalc,enterFloor,killMon,hudHit,drinkPot,activate,findHoverMon,addAlly,raiseAlly,necroSkill,useShrine,spawnExtras,updateAllies,showWaypoints,corpseNear,SHRINES,scoutToggle,warpToBoss,scoutCount,guardCount,chaosCast,convertCorpse,convCount,confMon,NET,showTitle,netPack,netToSv,netFlush};
+window.__dbg={AUPK_LIST,showAuPick,auPickOk,MSHR,LD,EXV,AU,w2s,SX:()=>SX,SY:()=>SY,M3D,auToggle,auTick,UI,mapRef:()=>({map,WD,FD,tint,deco,TILES}),GLP,los,snapCam,EXS,EXD,EXI,exStart,exAssign,MT,ICO,icoCv,ICM,s3Cast,WFX,wfxAt,SK,CLS,HPC,pondTick,pondAt,PND,coachGo,saveGame,loadSave,EV4,ev4Fire,explode,spawnProj,FX2,fx2Spr,fx2Painter,fx2FireSpr,EV3,ev3Fire,ev3Use,ev3Give,ev3SL,wxSet,wxLightning,get HD3ON(){return HD3ON;},set HD3ON(v){HD3ON=v;},galShot,AREAS,evFire,evTick,HEV,stalkTick,mpAvatar,ultDrop,ultDropItem,hurtPlayer,deathBlast,GX_ZONES,isWall,los,nearestFloor,AI,ACT,spawnCurse,summonAt,raiseHostile,poisonP,detonate,bossSpecial,AREAS,THEMES,MT,makeMon,spawnAll,genLevel,CLS,SK,BASES,UNIQ,SETS,BUFF,mkItem,swapWeapons,newPlayer,itemHTML,eqGet,eqSet,showClassSelect,G,get P(){return P;},startGame,update,render,castSkill,genItem,recalc,enterFloor,killMon,hudHit,drinkPot,activate,findHoverMon,addAlly,raiseAlly,necroSkill,useShrine,spawnExtras,updateAllies,showWaypoints,corpseNear,SHRINES,scoutToggle,warpToBoss,scoutCount,guardCount,chaosCast,convertCorpse,convCount,confMon,NET,showTitle,netPack,netToSv,netFlush};
 })();
 </script>
 </body>
