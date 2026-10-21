@@ -7082,7 +7082,7 @@ function msBuild(m,K){
   const pm=Object.create(m);pm.x=12;pm.y=12;pm.face=K.dq*.3927;pm.anim=(K.ph+.5)/12*6.2832/7;pm.wind=K.wq?(1-K.wq/4)*K.dur:0;pm.flash=m.flash>0?.1:0;pm._ln=0;pm._hc=null;pm.rk=99;
   const mainCtx=ctx,cx0=cam.x,cy0=cam.y;cam.x=(pm.x-pm.y)*TW/2-ax+W/2;cam.y=(pm.x+pm.y)*TH/2-ay+H/2;
   ctx=x;ctx.setTransform(SD,0,0,SD,0,0);ctx.globalCompositeOperation='source-over';ctx.globalAlpha=1;ctx.clearRect(0,0,BW,BH);
-  try{drawMonLive(pm);}finally{ctx=mainCtx;cam.x=cx0;cam.y=cy0;}
+  NOBAR=true;try{drawMonLive(pm);}finally{NOBAR=false;ctx=mainCtx;cam.x=cx0;cam.y=cy0;}
   const e={cv:cvs,bw:BW,bh:BH};MSHR.m.set(K.key,e);MSHR.miss++;if(LD.on){(LD.last||(LD.last=[])).push(e);if(LD.last.length>14)LD.last.shift();}return e;
 }
 function drawMonShared(m){
@@ -7302,7 +7302,9 @@ function ldStart(){
 function ldStep(){
   const t0=performance.now();
   while(LD.i<LD.n&&performance.now()-t0<14){const t=LD.q[LD.i++];try{t.f();}catch(e){}}
-  if(LD.i>=LD.n||performance.now()-LD.t0>60000){LD.on=false;G.loading=false;LD.q=[];last=performance.now();}
+  /* 初回だけ最長60秒。階層・洞窟の移動時は短く切り上げ（残りは必要になった時に描く）、オート中はさらに短く */
+  const lim=!LD.seen?60000:(AU.on?2500:4500);
+  if(LD.i>=LD.n||performance.now()-LD.t0>lim){LD.seen=true;LD.on=false;G.loading=false;LD.q=[];last=performance.now();}
 }
 function ldDraw(){
   const t=LD.q[Math.min(LD.i,LD.n-1)],ph=t?t.ph:3,pr=LD.n?LD.i/LD.n:1,tm=(performance.now()-LD.t0)/1000;
@@ -7343,9 +7345,27 @@ function ldDraw(){
 function drawMon(m){
   {let tf=m.face,fs=m.fs==null?tf:m.fs,df=tf-fs;while(df>3.14159)df-=6.28318;while(df<-3.14159)df+=6.28318;const k_=Math.min(1,(G.dtLast||.016)*11);fs+=df*k_;m.fs=fs;m._fo=m.face;m.face=fs;if(m.moving&&!m.dead&&(m.rk|0)<10&&Math.random()<(G.dtLast||.016)*3.2)pushP({k:'smoke',x:m.x,y:m.y,z:.05,vx:rnd(-.2,.2),vy:rnd(-.2,.2),vz:.3,life:.5,max:.5,sz:3,rgb:'130,115,95',al:.22,grav:0});try{return drawMon0(m);}finally{m.face=m._fo;}}
 }
+let NOBAR=false;
+function monBarDraw(m,x,y,sc,T){
+  if(m.hp<m.maxhp||G.hm===m||(m.aggro&&!m.ally&&dst(P.x,P.y,m.x,m.y)<12)){
+    const tall=(T.shape==='brute'?60:T.shape==='mage'?50:46)*sc,bw=36*Math.max(1,sc*.9),by=y-tall-4;
+    if(G.hm===m||(P.target&&P.target.m===m))drawTraitRow(m,x,by-14);
+    ctx.fillStyle='rgba(0,0,0,.82)';ctx.fillRect(x-bw/2-1.5,by-1.5,bw+3,7);
+    const hg=ctx.createLinearGradient(0,by,0,by+4);const c1=m.boss?'#ff8a4a':m.champ?'#97a3ff':'#e24a38',c2=m.boss?'#8a2410':m.champ?'#2f3aa8':'#6e1410';hg.addColorStop(0,c1);hg.addColorStop(1,c2);
+    const r=Math.max(0,Math.min(1,m.hp/m.maxhp));
+    ctx.fillStyle=hg;ctx.fillRect(x-bw/2,by,bw*r,4);
+    ctx.fillStyle='rgba(255,255,255,.28)';ctx.fillRect(x-bw/2,by,bw*r,1);
+    ctx.strokeStyle=m.boss?'#c9a24f':m.champ?'#6a78d8':'#4a3a2a';ctx.lineWidth=1;ctx.strokeRect(x-bw/2-1.5,by-1.5,bw+3,7);}
+}
+/* キャッシュ済み・共有スプライトの上に、HPゲージだけを毎フレーム描く（ゲージを絵に焼き込まない） */
+function monBar(m){
+  if(m.dead)return;const T=MT[m.type];if(!T)return;
+  w2s(m.x,m.y);const x=SX,y=SY;ctx.save();ctx.translate(x,y);ctx.scale(CS,CS);ctx.translate(-x,-y);
+  try{monBarDraw(m,x,y,m.sc,T);}finally{ctx.restore();}
+}
 function drawMon0(m){
   if(m.boss||m.sc>2.2||G.state!=='play'||(typeof darkOn==='function'&&darkOn())||QCACHE===0)return drawMonLive(m);
-  if(!m.dead&&!m.champ&&!m.risen&&!m.ally&&!m.mod&&!m.stun&&!m.conf&&!m.owner&&drawMonShared(m))return;
+  if(!m.dead&&!m.champ&&!m.risen&&!m.ally&&!m.mod&&!m.stun&&!m.conf&&!m.owner&&drawMonShared(m)){monBar(m);return;}
   const k=Math.max(1,m.sc*.95),BW=Math.ceil(250*k),BH=Math.ceil(310*k),ax=BW/2,ay=Math.round(BH*.8);
   let c=MSP.get(m);
   if(!c||c.dpr!==DPR||c.BW!==BW){c={cv:mkcv(Math.ceil(BW*DPR),Math.ceil(BH*DPR)),BW,BH,ax,ay,dpr:DPR,t:-9,f:false,hm:false};c.x=c.cv.getContext('2d');MSP.set(m,c);}
@@ -7356,10 +7376,10 @@ function drawMon0(m){
     const mainCtx=ctx,cx0=cam.x,cy0=cam.y;
     cam.x=(m.x-m.y)*TW/2-ax+W/2;cam.y=(m.x+m.y)*TH/2-ay+H/2;
     ctx=c.x;ctx.setTransform(DPR,0,0,DPR,0,0);ctx.globalCompositeOperation='source-over';ctx.globalAlpha=1;ctx.clearRect(0,0,BW,BH);
-    try{drawMonLive(m);}finally{ctx=mainCtx;cam.x=cx0;cam.y=cy0;}
+    NOBAR=true;try{drawMonLive(m);}finally{NOBAR=false;ctx=mainCtx;cam.x=cx0;cam.y=cy0;}
     c.t=G.t;c.f=fl;c.hm=hm;
   }
-  w2s(m.x,m.y);ctx.drawImage(c.cv,SX-ax,SY-ay,BW,BH);
+  w2s(m.x,m.y);ctx.drawImage(c.cv,SX-ax,SY-ay,BW,BH);monBar(m);
 }
 
 let QCACHE=1;
@@ -7718,14 +7738,7 @@ function drawMonLive(m){
   if(aurc&&!(m.boss&&HDB[m.name])){ADD();for(let i=0;i<5;i++){const a=G.t*1.8+i*1.2566+m.anim*.1,r=(m.boss?22:15)*sc;glow(x+Math.cos(a)*r,y-(10+8*Math.sin(a*2+i))*sc,(m.boss?4.5:3)*sc,aurc,.9);}NRM();}
   if(m.chill>0){ADD();glow(x,y-16*sc,22*sc,'110,190,255',.38);NRM();
     for(let i=0;i<5;i++){const a=i*1.26+1,cx2=x+Math.cos(a)*8*sc,cy2=y-8*sc-i*4.5*sc;poly([cx2,cy2-5*sc,cx2+2.2*sc,cy2,cx2,cy2+3*sc,cx2-2.2*sc,cy2],'rgba(190,235,255,.78)','rgba(60,120,190,.85)',.8);}}
-  if(m.hp<m.maxhp||G.hm===m){
-    const tall=(T.shape==='brute'?60:T.shape==='mage'?50:46)*sc,bw=36*Math.max(1,sc*.9),by=y-tall-4;
-    if(G.hm===m||(P.target&&P.target.m===m))drawTraitRow(m,x,by-14);
-    ctx.fillStyle='rgba(0,0,0,.82)';ctx.fillRect(x-bw/2-1.5,by-1.5,bw+3,7);
-    const hg=ctx.createLinearGradient(0,by,0,by+4);const c1=m.boss?'#ff8a4a':m.champ?'#97a3ff':'#e24a38',c2=m.boss?'#8a2410':m.champ?'#2f3aa8':'#6e1410';hg.addColorStop(0,c1);hg.addColorStop(1,c2);
-    ctx.fillStyle=hg;ctx.fillRect(x-bw/2,by,bw*Math.max(0,m.hp/m.maxhp),4);
-    ctx.fillStyle='rgba(255,255,255,.28)';ctx.fillRect(x-bw/2,by,bw*Math.max(0,m.hp/m.maxhp),1);
-    ctx.strokeStyle=m.boss?'#c9a24f':m.champ?'#6a78d8':'#4a3a2a';ctx.lineWidth=1;ctx.strokeRect(x-bw/2-1.5,by-1.5,bw+3,7);}
+  if(!NOBAR)monBarDraw(m,x,y,sc,T);
   ctx.restore();
 }
 
@@ -13939,7 +13952,7 @@ function galShot(kind,spec,cw,ch,scl,face,eq,cls){
   }finally{ctx=sv.ctx;P=sv.P;W=sv.W;H=sv.H;cam.x=sv.cx;cam.y=sv.cy;G.t=sv.t;}
   return c.toDataURL();
 }
-window.__dbg={genItem,botNew,botCatchUp,botSpawn,botAI,botStart,botAutoGear,BOT,botSp,m3dEquip,AUPK_LIST,showAuPick,auPickOk,MSHR,LD,EXV,AU,w2s,SX:()=>SX,SY:()=>SY,M3D,auToggle,auTick,UI,mapRef:()=>({map,WD,FD,tint,deco,TILES}),GLP,los,snapCam,EXS,EXD,EXI,exStart,exAssign,MT,ICO,icoCv,ICM,s3Cast,WFX,wfxAt,SK,CLS,HPC,pondTick,pondAt,PND,coachGo,saveGame,loadSave,EV4,ev4Fire,explode,spawnProj,FX2,fx2Spr,fx2Painter,fx2FireSpr,EV3,ev3Fire,ev3Use,ev3Give,ev3SL,wxSet,wxLightning,get HD3ON(){return HD3ON;},set HD3ON(v){HD3ON=v;},galShot,AREAS,evFire,evTick,HEV,stalkTick,mpAvatar,ultDrop,ultDropItem,hurtPlayer,deathBlast,GX_ZONES,isWall,los,nearestFloor,AI,ACT,spawnCurse,summonAt,raiseHostile,poisonP,detonate,bossSpecial,AREAS,THEMES,MT,makeMon,spawnAll,genLevel,CLS,SK,BASES,UNIQ,SETS,BUFF,mkItem,swapWeapons,newPlayer,itemHTML,eqGet,eqSet,showClassSelect,G,get P(){return P;},startGame,update,render,castSkill,genItem,recalc,enterFloor,killMon,hudHit,drinkPot,activate,findHoverMon,addAlly,raiseAlly,necroSkill,useShrine,spawnExtras,updateAllies,showWaypoints,corpseNear,SHRINES,scoutToggle,warpToBoss,scoutCount,guardCount,chaosCast,convertCorpse,convCount,confMon,NET,showTitle,netPack,netToSv,netFlush};
+window.__dbg={enterFloor,genItem,botNew,botCatchUp,botSpawn,botAI,botStart,botAutoGear,BOT,botSp,m3dEquip,AUPK_LIST,showAuPick,auPickOk,MSHR,LD,EXV,AU,w2s,SX:()=>SX,SY:()=>SY,M3D,auToggle,auTick,UI,mapRef:()=>({map,WD,FD,tint,deco,TILES}),GLP,los,snapCam,EXS,EXD,EXI,exStart,exAssign,MT,ICO,icoCv,ICM,s3Cast,WFX,wfxAt,SK,CLS,HPC,pondTick,pondAt,PND,coachGo,saveGame,loadSave,EV4,ev4Fire,explode,spawnProj,FX2,fx2Spr,fx2Painter,fx2FireSpr,EV3,ev3Fire,ev3Use,ev3Give,ev3SL,wxSet,wxLightning,get HD3ON(){return HD3ON;},set HD3ON(v){HD3ON=v;},galShot,AREAS,evFire,evTick,HEV,stalkTick,mpAvatar,ultDrop,ultDropItem,hurtPlayer,deathBlast,GX_ZONES,isWall,los,nearestFloor,AI,ACT,spawnCurse,summonAt,raiseHostile,poisonP,detonate,bossSpecial,AREAS,THEMES,MT,makeMon,spawnAll,genLevel,CLS,SK,BASES,UNIQ,SETS,BUFF,mkItem,swapWeapons,newPlayer,itemHTML,eqGet,eqSet,showClassSelect,G,get P(){return P;},startGame,update,render,castSkill,genItem,recalc,enterFloor,killMon,hudHit,drinkPot,activate,findHoverMon,addAlly,raiseAlly,necroSkill,useShrine,spawnExtras,updateAllies,showWaypoints,corpseNear,SHRINES,scoutToggle,warpToBoss,scoutCount,guardCount,chaosCast,convertCorpse,convCount,confMon,NET,showTitle,netPack,netToSv,netFlush};
 })();
 </script>
 </body>
