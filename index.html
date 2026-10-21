@@ -259,7 +259,14 @@ body.mob #panelL .skh{margin:4px 0 5px;font-size:15px}
 #tc.pn #tz,#tc.pn #tj,#tc.pn .tb,#tc.pn #tfk,#tc.pn #tms,#tc.pn #tmsn{display:none!important}
 #tc.mo .tb:not(#tbA){opacity:.2}
 body.mob canvas{touch-action:none}
-body.mob .card{max-height:94vh;overflow:auto;padding:14px 18px}
+body.mob .card{max-height:94vh;overflow:auto;padding:10px 16px}
+body.mob .card h2{font-size:20px;margin:0 0 6px}body.mob .card p{font-size:12px;margin:2px 0}
+body.mob .card .btns{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin:6px auto 4px;max-width:none}
+body.mob .card .btns .btn{min-height:38px;font-size:13px;padding:5px 8px}
+body.mob .card.wide .btns{grid-template-columns:repeat(4,1fr)}
+body.mob .setrow{margin:6px 0 2px}body.mob .setl{margin-bottom:3px;font-size:12px}body.mob .seg button{min-height:32px;font-size:13px}body.mob .seg[style*="repeat(5"]{grid-template-columns:repeat(10,1fr)!important}body.mob .setn{font-size:10px}
+body.mob .card .sub{font-size:11px;margin:4px 0 2px}body.mob .card .btn{min-height:36px}
+body.mob #isheet .isb{font-size:12px;height:112px}body.mob #isheet .isa .btn{min-height:34px}
 body.mob .card h1{font-size:clamp(30px,7vw,52px)}
 body.mob .btns{margin:10px 0 6px;gap:7px}
 
@@ -326,7 +333,7 @@ html,body{overscroll-behavior:none;touch-action:manipulation}
 #panelR.mobp:not(.hidden){display:grid;grid-template-columns:minmax(0,372px) minmax(0,1fr);column-gap:12px;align-content:start}
 #panelR.mobp>.ptitle,#panelR.mobp>.row,#panelR.mobp>.eqtb,#panelR.mobp>.eqnote{grid-column:1/-1}
 #panelR.mobp>.eqL{grid-column:1}#panelR.mobp>.eqR{grid-column:2;min-width:0}
-#panelR.mobp.nar{grid-template-columns:minmax(0,1fr)}#panelR.mobp.nar>.eqL,#panelR.mobp.nar>.eqR{grid-column:1;grid-row:auto}
+#panelR.mobp.nar{grid-template-columns:minmax(0,1fr)}#panelR.mobp.nar>.eqL,#panelR.mobp.nar>.eqR{grid-column:1;grid-row:auto}#panelR.mobp.nar.shp>.eqL{order:1}
 .eqtb{display:flex;flex-wrap:wrap;gap:6px;margin:4px 0 6px;align-items:center}.eqtb.who{margin:2px 0 4px}
 .eqb{background:linear-gradient(#2b2013,#17100a);border:1px solid #7a5d2c;color:#e9d9a8;border-radius:6px;padding:4px 10px;font:inherit;font-size:12px;font-weight:700;cursor:pointer;min-height:28px}
 .eqb.best{background:linear-gradient(#8a5a1a,#4a2a0a);color:#ffe9a0;border-color:#d1a74f}
@@ -4937,9 +4944,9 @@ function botDraw(a){
 }
 function botHud(){
   const L=G.ally.filter(a=>a.bot&&!a.dead);if(!L.length&&!BOT.down.length)return;
-  const mb=MOB.on,B=(typeof mmBox==='function')?mmBox():null;let y=(B?B.y+B.h+34:44);
+  const mb=MOB.on,big=(+G.mm===2),B=(!big&&typeof mmBox==='function')?mmBox():null;let y=big?(mb?96:60):(B?B.y+B.h+34:44);
   try{if(EV3B&&EV3B.d&&EV3B.d.style.display!=='none'&&EV3B.d.offsetHeight>0){const r=EV3B.d.getBoundingClientRect(),c=cv.getBoundingClientRect();y=Math.max(y,r.bottom-c.top+26);}}catch(e){}
-  const xr=mb?W-104:W-14,bw=mb?84:92;
+  const bw=mb?84:92,xr=big?14+bw+2:(mb?W-104:W-14);
   ctx.font='700 '+(mb?11:12)+'px '+SERIF;ctx.textAlign='right';
   for(const a of L){const t=CLS[a.bot.cls].ic+' '+a.bot.name+' Lv'+a.bot.lvl;ctx.lineWidth=3;ctx.strokeStyle='rgba(0,0,0,.8)';ctx.strokeText(t,xr,y);ctx.fillStyle='#7fe8d8';ctx.fillText(t,xr,y);
     const f=clamp(a.hp/a.maxhp,0,1);ctx.fillStyle='rgba(0,0,0,.7)';ctx.fillRect(xr-bw-2,y+3,bw+2,6);ctx.fillStyle=f>.35?'#3fd9b0':'#e0503c';ctx.fillRect(xr-bw-1,y+4,bw*f,4);y+=(mb?20:24);}
@@ -7046,14 +7053,14 @@ function drawPet(){
 function openPetCfg(){
   petInit();let o=document.getElementById('petcfg');if(o){o.remove();return;}
   o=document.createElement('div');o.id='petcfg';
-  o.style.cssText='position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:50;background:linear-gradient(#1b1510,#0d0a08);border:2px solid #5a4528;box-shadow:0 0 40px #000;padding:16px 20px;color:#e8dcc0;font:14px sans-serif;width:340px;max-width:92vw';
-  const row=(k,lab,v)=>`<label style="display:flex;align-items:center;gap:8px;padding:5px 0;cursor:pointer"><input type="checkbox" data-k="${k}" ${v?'checked':''}> ${lab}</label>`;
+  o.style.cssText='position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:50;background:linear-gradient(#1b1510,#0d0a08);border:2px solid #5a4528;box-shadow:0 0 40px #000;padding:16px 20px;color:#e8dcc0;font:14px sans-serif;width:340px;max-width:92vw';if(MOB.on)o.style.cssText+=';width:560px;font-size:13px;padding:10px 16px;max-height:92vh;overflow:auto';
+  const row=(k,lab,v)=>`<label style="display:flex;align-items:center;gap:8px;padding:${MOB.on?3:5}px 0;cursor:pointer"><input type="checkbox" data-k="${k}" ${v?'checked':''}> ${lab}</label>`;
   const f=P.pet.f;
   o.innerHTML=`<div style="font-weight:800;font-size:16px;color:#d8b860;margin-bottom:6px">🕯 ペット「ともしび」<span style="float:right;cursor:pointer" id="pcx">×</span></div>
   <div style="color:#a89878;font-size:12px;margin-bottom:8px">ペットが自動で拾ってくる物を選べます（バッグが満杯だと装備は拾いません）</div>
   ${row('on','ペットを有効にする',P.pet.on)}<div style="border-top:1px solid #3a3022;margin:6px 0"></div>
-  ${row('f.gold','💰 金貨',f.gold)}${row('f.pot','🧪 ポーション',f.pot)}
-  ${row('f.normal','<span style="color:#ddd">ノーマル装備</span>',f.normal)}${row('f.magic','<span style="color:#8f9dff">マジック装備</span>',f.magic)}${row('f.rare','<span style="color:#ffe46e">レア装備</span>',f.rare)}${row('f.unique','<span style="color:#e2b65f">ユニーク装備</span>',f.unique)}${row('f.set','<span style="color:#5fe86b">セット装備</span>',f.set)}
+  <div style="${MOB.on?'display:grid;grid-template-columns:1fr 1fr;column-gap:14px':''}">${row('f.gold','💰 金貨',f.gold)}${row('f.pot','🧪 ポーション',f.pot)}
+  ${row('f.normal','<span style="color:#ddd">ノーマル装備</span>',f.normal)}${row('f.magic','<span style="color:#8f9dff">マジック装備</span>',f.magic)}${row('f.rare','<span style="color:#ffe46e">レア装備</span>',f.rare)}${row('f.unique','<span style="color:#e2b65f">ユニーク装備</span>',f.unique)}${row('f.set','<span style="color:#5fe86b">セット装備</span>',f.set)}</div>
   <div style="border-top:1px solid #3a3022;margin:6px 0"></div>${row('eqonly','今の能力で装備できる物だけ拾う',P.pet.eqonly)}
   <div style="margin-top:8px">拾う範囲：<b id="prv">${P.pet.rng}</b> マス <input type="range" min="4" max="16" value="${P.pet.rng}" id="prg" style="vertical-align:middle;width:150px"></div>
   <div style="color:#7a6a50;font-size:11px;margin-top:8px">[O] キーでも開閉できます</div>`;
@@ -10944,7 +10951,7 @@ function findHoverObj(){
 /* ---------- UI ---------- */
 function showOverlay(h){const o=$('overlay');o.innerHTML=h;o.classList.remove('hidden');}
 function hideOverlay(){$('overlay').classList.add('hidden');}
-function showTip(h,x,y){const t=$('tip');t.innerHTML=h;t.classList.remove('hidden');const r=t.getBoundingClientRect();let px=x+16,py=y+16;
+function showTip(h,x,y){if(typeof MOB!=='undefined'&&MOB.on)return;const t=$('tip');t.innerHTML=h;t.classList.remove('hidden');const r=t.getBoundingClientRect();let px=x+16,py=y+16;
   if(px+r.width>innerWidth-8)px=x-r.width-16;if(py+r.height>innerHeight-8)py=innerHeight-r.height-8;if(py<4)py=4;t.style.left=px+'px';t.style.top=py+'px';}
 function hideTip(){$('tip').classList.add('hidden');UI.tipFrom=null;}
 function canLearn(id){const S=SK[id];if(P.skillPts<=0||P.lvl<S.req||(P.skills[id]||0)>=20)return false;for(const p of S.pre)if((P.skills[p[0]]||0)<p[1])return false;return true;}
@@ -11159,14 +11166,14 @@ function invHTML(){
   const PG=Math.max(0,Math.min(4,UI.bagPage|0));let bag='';for(let i=PG*BAGPG;i<(PG+1)*BAGPG;i++){const it=P.bag[i];bag+=`<div class="cell ${it?'r-'+it.rar:''} ${it&&!canEquip(it)?'bad':''} ${UI.msel&&UI.sel&&UI.sel[i]?'selx':''}" data-act="inv" data-i="${i}" ${it?`data-tip="inv:${i}"`:''}>${it?icoOf(it):''}</div>`;}
   return `<div class="ptitle"><span>装備</span><span class="x" data-act="close">×</span></div>
   ${eqWhoBar()}
-  <div class="row"><span>金貨</span><span class="pt">${P.gold}G</span><span><button class="plus" style="width:auto;padding:0 8px;margin:0" data-act="petcfg">🕯 ペット設定 [O]</button></span></div>
+  <div class="row"><span>金貨</span><span class="pt">${P.gold}G</span><span><button class="plus" style="width:auto;padding:0 8px;margin:0" data-act="petcfg">🕯 ペット設定${MOB.on?'':' [O]'}</button></span></div>
   <div class="eqtb"><button class="eqb best" data-act="autobest">⚔ 最強装備</button><button class="eqb" data-act="autotidy">🪙 自動売却・整理</button>${G.shopOpen?`<button class="eqb ${UI.sellMode?'on':''}" data-act="sellmode">💰 タップ売却 ${UI.sellMode?'ON':'OFF'}</button>`:''}</div>
   <div class="eqL">
   <div class="dollx"><div class="dcol l">${L}</div>
     <div class="dmid">${pu?`<img class="port" src="${pu}" alt="" draggable="false">`:''}<div class="dcn">${(CLS[P.cls]||CLS.warrior).n}　Lv ${P.lvl}</div><div class="dalt"><small>予備セット(X)</small>${alt('altw')}${alt('alts')}</div></div>
     <div class="dcol r">${R}</div></div>
-  <div class="sub">武器セット: <b style="color:var(--gold)">${P.sw?'Ⅱ':'Ⅰ'}</b>（Xで切替）　枠をクリックで外す</div></div>
-  <div class="eqR">${msBar()}<div class="sub">バッグ <span class="pgs">${bagTabs(PG,'bagpg')}<button class="pgb" data-act="bagsort" title="レア度順に整理">整理</button></span>　<span style="opacity:.8">${G.shopOpen&&UI.sellMode?'タップで売却（セット以上は詳細表示）':'クリック:装備 ／ Shift+クリック:予備 ／ 右クリック:'+(G.shopOpen?'売却':'捨てる')}</span></div><div class="bag ${G.shopOpen&&UI.sellMode?'sellm':''}">${bag}</div><div class="dbon">${bon}</div></div>`;
+  <div class="sub">武器セット: <b style="color:var(--gold)">${P.sw?'Ⅱ':'Ⅰ'}</b>${MOB.on?'　装備枠をタップで詳細・外す':'（Xで切替）　枠をクリックで外す'}</div></div>
+  <div class="eqR">${msBar()}<div class="sub">バッグ <span class="pgs">${bagTabs(PG,'bagpg')}<button class="pgb" data-act="bagsort" title="レア度順に整理">整理</button></span>　<span style="opacity:.8">${G.shopOpen&&UI.sellMode?'タップで売却（セット以上は詳細表示）':(MOB.on?'タップで詳細・装備':'クリック:装備 ／ Shift+クリック:予備 ／ 右クリック:'+(G.shopOpen?'売却':'捨てる'))}</span></div><div class="bag ${G.shopOpen&&UI.sellMode?'sellm':''}">${bag}</div><div class="dbon">${bon}</div></div>`;
 }
 function renderPanels(){
   const L=$('panelL'),R=$('panelR');
@@ -13145,9 +13152,9 @@ function ev3Use(k){
 let EV3B=null;
 function ev3Bar(force){
   if(!EV3B){const d=document.createElement('div');d.id='evbar';d.style.cssText='position:fixed;right:14px;top:60px;display:flex;flex-direction:column;align-items:flex-end;gap:5px;z-index:6;pointer-events:none;font-family:sans-serif';document.body.appendChild(d);EV3B={d,sig:'',btn:{}};}
-  const show=G.state==='play'&&P&&!P.dead;EV3B.d.style.display=show?'flex':'none';if(!show)return;
-  {const B=(typeof mmBox==='function')?mmBox():null,mb=!!MOB.on,top=Math.round(B?B.y+B.h+(mb?22:30):40),fl=mb?'row-wrap':'col';
-   if(EV3B.pk!==top+fl){EV3B.pk=top+fl;const st=EV3B.d.style;st.top=top+'px';st.right='14px';st.flexDirection=mb?'row-reverse':'column';st.flexWrap=mb?'wrap':'nowrap';st.justifyContent='flex-start';st.maxWidth=mb?'190px':'';EV3B.sig='';}}
+  const show=G.state==='play'&&P&&!P.dead&&!(MOB.on&&(UI.left||UI.right));EV3B.d.style.display=show?'flex':'none';if(!show)return;
+  {const B=(typeof mmBox==='function')?mmBox():null,mb=!!MOB.on,big=(+G.mm===2),top=big?(mb?70:40):Math.round(B?B.y+B.h+(mb?22:30):40),fl=(mb?'row-wrap':'col')+(big?'L':'R');
+   if(EV3B.pk!==top+fl){EV3B.pk=top+fl;const st=EV3B.d.style;st.top=top+'px';if(big){st.left='14px';st.right='auto';st.alignItems='flex-start';}else{st.right='14px';st.left='auto';st.alignItems='flex-end';}st.flexDirection=mb?'row-reverse':'column';st.flexWrap=mb?'wrap':'nowrap';st.justifyContent='flex-start';st.maxWidth=mb?'190px':'';EV3B.sig='';}}
   const cmp=!!MOB.on;
   const e3=P.ev3||{},ev=P.evi||{};let sig='';for(const k in EVI)sig+=(ev[k]|0)+':'+Math.ceil(e3[k]||0)+'|';sig+=Math.ceil(P.slc||0)+'|'+(EV3.moon>0?1:0);
   if(!force&&sig===EV3B.sig)return;EV3B.sig=sig;
@@ -13352,7 +13359,7 @@ const AUPK_GM=[0,10,50,100,300,1000];
 function showAuPick(){
   const k=AU.pk;const tg=(id,nm)=>'<button class="btn'+(k[id]!==0?'':' ghost')+'" data-act="au_tg" data-k="'+id+'" style="text-align:left">'+(k[id]!==0?'☑ ':'☐ ')+nm+'</button>';
   const rows=AUPK_LIST.map(([id,nm])=>{const c=RC[id]||'#e8e2d2';return '<button class="btn'+(k[id]?'':' ghost')+'" data-act="au_pk" data-k="'+id+'" style="text-align:left;'+(k[id]?'border-color:'+c:'')+'"><span style="color:'+c+'">'+(k[id]?'☑ ':'☐ ')+nm+'</span></button>';}).join('');
-  showOverlay('<div class="card" style="max-height:92vh;overflow:auto"><h2>オートで拾う物</h2><div style="font-size:12px;color:#cdbf9f;margin-bottom:8px">チェックした種類だけオート攻略・オート戦闘が拾いに行きます。手動操作には影響しません。</div><div class="sub" style="margin:2px 0 4px">持ち物の自動整理（オート中、約6秒ごと）</div><div style="display:grid;grid-template-columns:1fr;gap:6px;margin-bottom:8px">'+tg('sell','弱い・低レベルの装備を自動で売却')+tg('stash','セット以上の装備は自動で倉庫へ')+tg('equip','装備を自動で最強に更新')+'</div><div class="sub" style="margin:2px 0 4px">自動売却の対象（弱い物だけ売ります）</div><div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:6px">'+tg('sellN','白（通常）')+tg('sellM','青（魔法）')+tg('sellR','黄（レア）')+'</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px"><button class="btn ghost" data-act="au_sellLv">低レベル基準: 自分-'+(k.sellLv||7)+'以下</button><button class="btn'+(k.sellAllN?'':' ghost')+'" data-act="au_sellAllN">'+(k.sellAllN?'☑ ':'☐ ')+'白は強さに関係なく全部売る</button></div><div class="sub" style="margin:2px 0 4px">拾う物</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px">'+rows+'</div><div class="btns"><button class="btn ghost" data-act="au_gm">ゴールド最低額: '+(k.goldMin||0)+' 以上</button><button class="btn ghost" data-act="au_pkall">魔法以上すべてON（通常OFF）</button><button class="btn ghost" data-act="au_pkrare">レア以上のみ</button><button class="btn" data-act="au_pkback">戻る</button></div></div>');
+  showOverlay('<div class="card wide" style="max-height:92vh;overflow:auto;max-width:760px"><h2>オートで拾う物</h2><div style="font-size:12px;color:#cdbf9f;margin-bottom:8px">チェックした種類だけオート攻略・オート戦闘が拾いに行きます。手動操作には影響しません。</div><div class="sub" style="margin:2px 0 4px">持ち物の自動整理（オート中、約6秒ごと）</div><div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:8px">'+tg('sell','弱い装備を自動売却')+tg('stash','セット以上は倉庫へ')+tg('equip','装備を自動で最強に')+'</div><div class="sub" style="margin:2px 0 4px">自動売却の対象（弱い物だけ売ります）</div><div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:6px">'+tg('sellN','白（通常）')+tg('sellM','青（魔法）')+tg('sellR','黄（レア）')+'</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px"><button class="btn ghost" data-act="au_sellLv">低レベル基準: 自分-'+(k.sellLv||7)+'以下</button><button class="btn'+(k.sellAllN?'':' ghost')+'" data-act="au_sellAllN">'+(k.sellAllN?'☑ ':'☐ ')+'白は強さに関係なく全部売る</button></div><div class="sub" style="margin:2px 0 4px">拾う物</div><div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:6px">'+rows+'</div><div class="btns"><button class="btn ghost" data-act="au_gm">金貨の下限: '+(k.goldMin||0)+'G</button><button class="btn ghost" data-act="au_pkall">魔法以上をON</button><button class="btn ghost" data-act="au_pkrare">レア以上のみ</button><button class="btn" data-act="au_pkback">戻る</button></div></div>');
 }
 const AU_EL={fire:'fire',cold:'cold',light:'light',pois:'pois',psn:'pois',arcane:'arc',shadow:'arc',phys:'phys'};
 function auToggle(on,mode){
@@ -14037,9 +14044,9 @@ async function mobWake(){try{if(navigator.wakeLock&&!WLOCK){WLOCK=await navigato
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&MOB.on&&G.state==='play')mobWake();});
 function mobPanelFit(){
   const tc=$('tc').getBoundingClientRect(),sw=tc.width,sh=tc.height,L=$('panelL'),R=$('panelR');
-  const key=Math.round(sw)+'x'+Math.round(sh)+'|'+(UI.left||'')+'|'+(UI.right?1:0);if(key===MOB.pk)return;MOB.pk=key;
+  const key=Math.round(sw)+'x'+Math.round(sh)+'|'+(UI.left||'')+'|'+(UI.right?1:0)+'|'+(G.shopOpen?1:0);if(key===MOB.pk)return;MOB.pk=key;
   const both=!!(UI.left&&UI.right),sc=clamp(Math.min(sh/440,sw/880),.72,1),top=6,hb=(typeof hudL==='function'?hudL().ph:90)+4,hh=(sh-top-hb)/sc;
-  const fit=(p,x,w)=>{p.classList.add('mobp');p.classList.toggle('nar',w/sc<640);p.style.cssText='box-sizing:border-box;left:'+x+'px;right:auto;top:'+top+'px;width:'+(w/sc)+'px;max-width:none;height:'+hh+'px;max-height:none;transform:scale('+sc+');transform-origin:0 0;overflow:auto;-webkit-overflow-scrolling:touch';};
+  const fit=(p,x,w)=>{p.classList.add('mobp');p.classList.toggle('nar',w/sc<640);p.classList.toggle('shp',!!G.shopOpen);p.style.cssText='box-sizing:border-box;left:'+x+'px;right:auto;top:'+top+'px;width:'+(w/sc)+'px;max-width:none;height:'+hh+'px;max-height:none;transform:scale('+sc+');transform-origin:0 0;overflow:auto;-webkit-overflow-scrolling:touch';};
   const full=sw-16,half=(sw-24)/2;
   fit(L,tc.left+8,both?half:full);fit(R,tc.left+(both?16+half:8),both?half:full);
 }
@@ -14220,7 +14227,7 @@ function galShot(kind,spec,cw,ch,scl,face,eq,cls){
   }finally{ctx=sv.ctx;P=sv.P;W=sv.W;H=sv.H;cam.x=sv.cx;cam.y=sv.cy;G.t=sv.t;}
   return c.toDataURL();
 }
-window.__dbg={killMon,coachGo,vqGet,bbPrune,BOT,botNew,botSpawn,bagTidy,tidyWeak,autoBest,stashOpen,ev5Fire,EV5,ev5Tick,evFire,HEV,evTick,netPack,netToSv,enterFloor,genItem,botNew,botCatchUp,botSpawn,botAI,botStart,botAutoGear,BOT,botSp,m3dEquip,AUPK_LIST,showAuPick,auPickOk,MSHR,LD,EXV,AU,w2s,SX:()=>SX,SY:()=>SY,M3D,auToggle,auTick,UI,mapRef:()=>({map,WD,FD,tint,deco,TILES}),GLP,los,snapCam,EXS,EXD,EXI,exStart,exAssign,MT,ICO,icoCv,ICM,s3Cast,WFX,wfxAt,SK,CLS,HPC,pondTick,pondAt,PND,coachGo,saveGame,loadSave,EV4,ev4Fire,explode,spawnProj,FX2,fx2Spr,fx2Painter,fx2FireSpr,EV3,ev3Fire,ev3Use,ev3Give,ev3SL,wxSet,wxLightning,get HD3ON(){return HD3ON;},set HD3ON(v){HD3ON=v;},galShot,AREAS,evFire,evTick,HEV,stalkTick,mpAvatar,ultDrop,ultDropItem,hurtPlayer,deathBlast,GX_ZONES,isWall,los,nearestFloor,AI,ACT,spawnCurse,summonAt,raiseHostile,poisonP,detonate,bossSpecial,AREAS,THEMES,MT,makeMon,spawnAll,genLevel,CLS,SK,BASES,UNIQ,SETS,BUFF,mkItem,swapWeapons,newPlayer,itemHTML,eqGet,eqSet,showClassSelect,G,get P(){return P;},startGame,update,render,castSkill,genItem,recalc,enterFloor,killMon,hudHit,drinkPot,activate,findHoverMon,addAlly,raiseAlly,necroSkill,useShrine,spawnExtras,updateAllies,showWaypoints,corpseNear,SHRINES,scoutToggle,warpToBoss,scoutCount,guardCount,chaosCast,convertCorpse,convCount,confMon,NET,showTitle,netPack,netToSv,netFlush};
+window.__dbg={showWaypoints,trToggle,showPause,showAuPick,showBots,openPetCfg,mobSheetHide,showHelp,hideOverlay,killMon,coachGo,vqGet,bbPrune,BOT,botNew,botSpawn,bagTidy,tidyWeak,autoBest,stashOpen,ev5Fire,EV5,ev5Tick,evFire,HEV,evTick,netPack,netToSv,enterFloor,genItem,botNew,botCatchUp,botSpawn,botAI,botStart,botAutoGear,BOT,botSp,m3dEquip,AUPK_LIST,showAuPick,auPickOk,MSHR,LD,EXV,AU,w2s,SX:()=>SX,SY:()=>SY,M3D,auToggle,auTick,UI,mapRef:()=>({map,WD,FD,tint,deco,TILES}),GLP,los,snapCam,EXS,EXD,EXI,exStart,exAssign,MT,ICO,icoCv,ICM,s3Cast,WFX,wfxAt,SK,CLS,HPC,pondTick,pondAt,PND,coachGo,saveGame,loadSave,EV4,ev4Fire,explode,spawnProj,FX2,fx2Spr,fx2Painter,fx2FireSpr,EV3,ev3Fire,ev3Use,ev3Give,ev3SL,wxSet,wxLightning,get HD3ON(){return HD3ON;},set HD3ON(v){HD3ON=v;},galShot,AREAS,evFire,evTick,HEV,stalkTick,mpAvatar,ultDrop,ultDropItem,hurtPlayer,deathBlast,GX_ZONES,isWall,los,nearestFloor,AI,ACT,spawnCurse,summonAt,raiseHostile,poisonP,detonate,bossSpecial,AREAS,THEMES,MT,makeMon,spawnAll,genLevel,CLS,SK,BASES,UNIQ,SETS,BUFF,mkItem,swapWeapons,newPlayer,itemHTML,eqGet,eqSet,showClassSelect,G,get P(){return P;},startGame,update,render,castSkill,genItem,recalc,enterFloor,killMon,hudHit,drinkPot,activate,findHoverMon,addAlly,raiseAlly,necroSkill,useShrine,spawnExtras,updateAllies,showWaypoints,corpseNear,SHRINES,scoutToggle,warpToBoss,scoutCount,guardCount,chaosCast,convertCorpse,convCount,confMon,NET,showTitle,netPack,netToSv,netFlush};
 })();
 </script>
 </body>
