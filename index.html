@@ -4597,7 +4597,9 @@ function botNew(cls){
 function botAutoPoints(r){
   const w=BOTSTAT[r.cls]||BOTSTAT.warrior;r.sa=r.sa||{str:0,dex:0,vit:0,ene:0};
   while(r.statPts>0){let bk=null,bv=1e9;for(const k in w){if(w[k]<=0)continue;const v=(r.sa[k]+1)/w[k];if(v<bv){bv=v;bk=k;}}if(!bk)break;r[bk]++;r.sa[bk]++;r.statPts--;}
-  const sw=BOTSKW[r.cls]||{},C=CLS[r.cls];
+  const sw0=BOTSKW[r.cls]||{},C=CLS[r.cls],sw={};
+  for(const row of (C.tree||[]))for(const id of row)if(SK[id])sw[id]=sw0[id]||(SK[id].kind==='passive'?.4:.8);
+  for(const id in sw0)sw[id]=sw0[id];
   while(r.skillPts>0){
     let bk=null,bv=1e9;
     for(const id in sw){const S=SK[id];if(!S||sw[id]<=0)continue;const lv=r.skills[id]||0;if(lv>=Math.min(20,(C.max&&C.max[id])||16))continue;
@@ -4636,7 +4638,25 @@ function botDown(a,quiet){
   a.dead=true;soulFx(a.x,a.y,'150,220,255');ftext(a.x,a.y-.4,'戦闘不能','#ff8a7a',14);
   if(quiet)return;sfx('die');msg(a.bot.name+'が倒れた… 15秒後に復帰する','#ff9d7a');BOT.down.push({r:a.bot,t:15});
 }
+function botPlayerWants(it){
+  if(!canEquip(it))return false;const sl=it.slot,pf=(CLS[P.cls]||{}).pref||[];
+  if((sl==='weapon'||sl==='shield')&&pf.indexOf(itTyp(it))<0)return false;
+  const cur=sl==='ring'?[P.eq.ring,P.eq.ring2]:[P.eq[sl]];let mn=1e9;for(const c of cur){const v=c?itScore(c):0;if(v<mn)mn=v;}
+  return itScore(it)>mn*1.0;
+}
+/* 同行ロボの装備を持ち物から自動更新（本人が使う上位装備は残す） */
+function botAutoGear(){
+  if(!P||P.dead||MP.playing||G.state!=='play')return;let n=0;const who=[];
+  for(const a of G.ally){if(!a.bot||a.dead)continue;const r=a.bot;let ch=0;const pf=(CLS[r.cls]||{}).pref||[];
+    for(const s of BOTSLOTS){const sl=s==='ring2'?'ring':s;let best=-1,bs=r.eq[s]?itScore(r.eq[s]):0;
+      P.bag.forEach((it,i)=>{if(!it||it.slot!==sl||!botCanEquip(r,it))return;if((sl==='weapon'||sl==='shield')&&pf.indexOf(itTyp(it))<0)return;
+        const q=itScore(it);if(q<=bs*1.03||botPlayerWants(it))return;bs=q;best=i;});
+      if(best>=0){const old=r.eq[s]||null;r.eq[s]=P.bag[best];P.bag[best]=old;ch++;}}
+    if(ch){botAfterChange(r);who.push(r.name);n+=ch;}}
+  if(n){sfx('equip');msg(who.join('・')+'の装備を自動で更新した（'+n+'か所）','#7fe0d0');}
+}
 function botTick(dt){
+  if(G.state==='play'&&!G.paused&&G.t-(BOT.gearT||0)>4){BOT.gearT=G.t;try{botAutoGear();}catch(e){}}
   if(BOT.fx.length)for(let i=BOT.fx.length-1;i>=0;i--){if(G.t>=BOT.fx[i].t){const f=BOT.fx[i].fn;BOT.fx.splice(i,1);try{f();}catch(e){}}}
   if(BOT.down.length&&!MP.playing&&P&&!P.dead)for(let i=BOT.down.length-1;i>=0;i--){const d=BOT.down[i];d.t-=dt;
     if(d.t<=0){BOT.down.splice(i,1);const ix=BOT.list.indexOf(d.r);if(ix>=0&&d.r.on){const a=botSpawn(d.r,ix,{hpR:.6});if(a)msg(d.r.name+'が戦列に復帰した','#7fe0d0');}}}
@@ -4747,6 +4767,33 @@ const BS={
    for(let i=0;i<8;i++){const u=i/8;sparks(T.x+(a.x-T.x)*u,T.y+(a.y-T.y)*u,'210,110,255',1,1);}}},
  bonespear:{mn:l=>2+.4*l,cd:.8,ct:.35,rgb:'235,228,205',when:c=>c.inR,run:(a,c,l)=>{const T=c.T;if(!T||T.dead)return;bBolt(a,T,bSp(a,7+4.5*l,13+6.5*l),'phys',CC_BONE,1,0,2+(l>>3));}}
 };
+const BOTPH={warrior:1,assassin:1,archer:1};
+function botGxDef(id){
+  const S=SK[id],g=S&&S.g;if(!g||g.t==='sac')return null;
+  let rgb='255,230,160';try{rgb=rgbOf(S.c);}catch(e){}
+  const EL=['fire','cold','light','pois','arcane','phys'];
+  const dmg=(a,l,k)=>{k=k||1;if(BOTPH[a.bot.cls])return bPhys(a,(.9+.09*l)*k)[0];return bSp(a,(5+3.2*l)*k,(9+5*l)*k,'arcane');};
+  const elf=a=>BOTPH[a.bot.cls]?'phys':(EL.indexOf(g.el)>=0?g.el:'arcane');
+  const B={mn:l=>S.mana(l),ct:S.cast||.4,rgb,mel:0,cd:4,when:c=>c.inR,run:()=>{}};
+  switch(g.t){
+    case 'cleave':B.mel=1;B.cd=2.5;B.when=c=>c.T&&c.d<=(g.R||2.5)+.8;B.run=(a,c,l)=>{const R=g.R||2.5;bRing(a.x,a.y,R,'#'+'ffd080',rgb);sfx('swing');bAoe(a,a.x,a.y,R,m=>dealMon(m,dmg(a,l,Math.min(3,g.hits||1)*.6+.4),elf(a),{}));};break;
+    case 'rush':B.mel=1;B.cd=6;B.when=c=>c.T&&c.d>3&&c.d<Math.min(g.R||8,9);B.run=(a,c,l)=>{const T=c.T;if(!T||T.dead)return;const d=dst(a.x,a.y,T.x,T.y)||1,f=nearestFloor(T.x+(a.x-T.x)/d*1.1,T.y+(a.y-T.y)/d*1.1);if(f){smoke(a.x,a.y,4,6,'200,180,140',.3);a.x=f[0];a.y=f[1];sparks(a.x,a.y,rgb,8,3);}bHit(a,T,dmg(a,l,1.4),elf(a));slash(T);};break;
+    case 'nova':B.cd=5;B.when=c=>c.n3>=3||(c.n3>=1&&c.boss);B.run=(a,c,l)=>{const R=Math.min(6,g.R||5);bRing(a.x,a.y,R,'#fff0b4',rgb);sfx('boom');bAoe(a,a.x,a.y,R,m=>dealMon(m,dmg(a,l,1.1),elf(a),{}));};break;
+    case 'aoe':B.cd=6;B.when=c=>c.inR&&(c.nT>=2||c.boss);B.run=(a,c,l)=>{const T=c.T;if(!T||T.dead)return;const x=T.x,y=T.y;bRing(x,y,2.6,'#ffb060',rgb);BOT.fx.push({t:G.t+.5,fn:()=>{bAoe(a,x,y,2.6,m=>dealMon(m,dmg(a,l,1.5),elf(a),{}));explode(x,y,1.2,true);}});};break;
+    case 'volley':B.cd=2.5;B.run=(a,c,l)=>{const T=c.T;if(!T||T.dead)return;bBolt(a,T,dmg(a,l,.7),elf(a),CC_ARC,Math.min(7,(g.n||2)+1),.8);};break;
+    case 'field':B.cd=9;B.when=c=>c.inR&&(c.nT>=3||c.boss);B.run=(a,c,l)=>{const T=c.T;if(!T||T.dead)return;const x=T.x,y=T.y;bRing(x,y,2.8,'#b8e060',rgb);for(let k=0;k<4;k++)BOT.fx.push({t:G.t+.5*(k+1),fn:()=>{bAoe(a,x,y,2.8,m=>dealMon(m,dmg(a,l,.55),elf(a),{}));sparks(x,y,rgb,8,3);}});};break;
+    case 'beam':B.cd=3;B.when=c=>c.inR&&c.nE>=2;B.run=(a,c,l)=>{const T=c.T;if(!T||T.dead)return;const ux=Math.cos(a.face),uy=Math.sin(a.face),len=g.len||9;sfx('zap');
+      for(let u=1;u<=len;u++)sparks(a.x+ux*u,a.y+uy*u,rgb,2,2);bAoe(a,a.x,a.y,len+1,m=>{const px=m.x-a.x,py=m.y-a.y,al=px*ux+py*uy;if(al<0||al>len)return;if(Math.abs(px*uy-py*ux)<.8+m.r)dealMon(m,dmg(a,l,1.3),elf(a),{});});};break;
+    case 'heal':B.cd=8;B.when=c=>c.low<.55;B.run=(a,c,l)=>{const pct=.3;castGlyphFx(a.x,a.y,'120,255,170',2.2,1);sfx('pot');if(!P.dead&&dst(a.x,a.y,P.x,P.y)<=9)healSelf(P.st.maxhp*pct);
+      for(const b of G.ally){if(!b.bot||b.dead||dst(a.x,a.y,b.x,b.y)>9)continue;const h=Math.min(b.maxhp-b.hp,b.maxhp*pct);if(h>=1){b.hp+=h;ftext(b.x,b.y-.4,'+'+Math.round(h),'#7dff9a',13);}}};break;
+    case 'summon':B.cd=25;B.when=(c,a)=>c.nE>=2&&botSums(a)<4;B.run=(a,c,l)=>{castGlyphFx(a.x,a.y,rgb,1.8,1);sfx('cast');for(let k=0;k<Math.min(2,g.n||1);k++){const an=k*2.4+rnd(0,1);addAlly('skeleton',a.x+Math.cos(an)*1.5,a.y+Math.sin(an)*1.5,{lvl:a.bot.lvl,life:30+2*l,name:'使い魔',hpM:.9,bsum:a.bot.id});}};break;
+    case 'pull':B.cd=12;B.when=c=>c.nE>=3&&c.d>3;B.run=(a,c,l)=>{const R=g.R||8;bRing(a.x,a.y,R,'#a070ff',rgb);bAoe(a,a.x,a.y,R,m=>{m.stun=Math.max(m.stun,1);dealMon(m,dmg(a,l,.4),elf(a),{});});};break;
+    case 'vortex':B.cd=10;B.when=c=>c.inR&&(c.nT>=3||c.boss);B.run=(a,c,l)=>{const T=c.T;if(!T||T.dead)return;const x=T.x,y=T.y,R=Math.min(4.5,g.R||5);bRing(x,y,R,'#c080ff',rgb);for(let k=0;k<3;k++)BOT.fx.push({t:G.t+.4*(k+1),fn:()=>{bAoe(a,x,y,R,m=>dealMon(m,dmg(a,l,.8),elf(a),{}));}});};break;
+    default:return null;
+  }
+  return B;
+}
+function botSp(id){if(BS[id])return BS[id];const S=SK[id];if(S&&S.kind==='gx'){const d=botGxDef(id);if(d)BS[id]=d;return d||null;}return null;}
 const botSkLv=(a,id)=>{const b=a.bot.skills[id]||0;return b>0?b+(a.st.allSk||0):0;};
 /* --- 状況判断 --- */
 function botEnemies(a,R){const L=[];for(const m of G.mon){if(m.dead||m.ally)continue;const d=dst(a.x,a.y,m.x,m.y);if(d<=R&&(m.aggro||d<8)&&onScr(m.x,m.y,10))L.push([d,m]);}L.sort((x,y)=>x[0]-y[0]);return L;}
@@ -4769,8 +4816,12 @@ function botStart(a,id,sp,c,l){
 }
 function botTryAct(a){
   const c=botCtx(a),plan=BOTPLAN[a.bot.cls]||[];
-  for(const id of plan){const sp=BS[id];if(!sp)continue;const l=botSkLv(a,id);if(l<=0||a.cds[id]>0||a.mp<sp.mn(l))continue;
-    let ok=false;try{ok=sp.when(c,a,l);}catch(e){}if(!ok)continue;botStart(a,id,sp,c,l);return true;}
+  const tryId=id=>{const sp=botSp(id);if(!sp)return false;const l=botSkLv(a,id);if(l<=0||a.cds[id]>0||a.mp<sp.mn(l))return false;
+    let ok=false;try{ok=sp.when(c,a,l);}catch(e){}if(!ok)return false;botStart(a,id,sp,c,l);return true;};
+  for(const id of plan)if(tryId(id))return true;
+  /* 計画に無いスキルも、覚えていれば状況に応じて使う */
+  const rest=Object.keys(a.bot.skills).filter(id=>a.bot.skills[id]>0&&plan.indexOf(id)<0&&id!=='attack').sort((x,y)=>(a.bot.skills[y]||0)-(a.bot.skills[x]||0));
+  for(const id of rest)if(tryId(id))return true;
   if(c.inR){botStart(a,'attack',BS.attack,c,1);return true;}
   return false;
 }
@@ -13051,6 +13102,21 @@ function auTarget(en){
   return best;
 }
 /* ---- スキル選択（属性耐性・状況対応） ---- */
+/* ---- 能力値・スキルポイントの自動振り分け（オート中）：あらゆるスキルを覚えて状況で使い分ける ---- */
+function auSpend(){
+  if(!P||(P.statPts<=0&&P.skillPts<=0))return;
+  const C=CLS[P.cls]||CLS.warrior;let ch=false;
+  if(P.statPts>0){const w=BOTSTAT[P.cls]||BOTSTAT.warrior;P.sa=P.sa||{str:0,dex:0,vit:0,ene:0};
+    while(P.statPts>0){let bk=null,bv=1e9;for(const k in w){if(w[k]<=0)continue;const v=(P.sa[k]+1)/w[k];if(v<bv){bv=v;bk=k;}}if(!bk)break;P[bk]++;P.sa[bk]++;P.statPts--;ch=true;}}
+  if(P.skillPts>0){
+    const sw=BOTSKW[P.cls]||{},ids=[];for(const row of (C.tree||[]))for(const id of row)if(SK[id])ids.push(id);
+    let guard=60;
+    while(P.skillPts>0&&guard-->0){let bk=null,bv=1e9;
+      for(const id of ids){if(!canLearn(id))continue;const lv=P.skills[id]||0;if(lv>=Math.min(20,(C.max&&C.max[id])||16))continue;
+        const w=sw[id]||(SK[id].kind==='passive'?.4:.9);const v=(lv+1)/w;if(v<bv){bv=v;bk=id;}}
+      if(!bk)break;P.skills[bk]=(P.skills[bk]||0)+1;P.skillPts--;ch=true;}}
+  if(ch){recalc();UI.dirty=true;}
+}
 function auSkill(T,en,d){
   const ids=['attack'];for(const id in P.skills)if(P.skills[id]>0&&SK[id]&&SK[id].kind!=='passive')ids.push(id);
   const near=en.filter(e=>e[0]<=4.2).length,meleeNear=en.filter(e=>e[0]<=2.2&&e[1].rng<=0).length,hpR=P.hp/P.st.maxhp,mpR=P.mp/P.st.maxmp;
@@ -13069,6 +13135,18 @@ function auSkill(T,en,d){
     else if(K==='curse'){if(T.cursed>0||T.decay>0)continue;s=1.8+near*.3;rng=8;}
     else if(K==='raise'||K==='skelwar'){const n=G.ally.filter(a=>!a.dead&&a.owner===P).length;s=n<4?2.6:-9;rng=99;}
     else if(K==='cexp'||K==='drain'||K==='chaos'){s=1.1+near*.3;rng=8;}
+    else if(K==='leap'){s=(d>3.5&&d<10)?1.6:-3;rng=10;}
+    else if(K==='gx'&&S.g){const g=S.g,gt=g.t,cl=(AU.last&&AU.last[id])||-99;
+      if(gt==='cleave'){s=1.2+Math.min(3,(near-1)*.6)+(meleeNear?.6:0);rng=(g.R||2.5)+T.r;}
+      else if(gt==='rush'){s=d>3?1.8:-3;rng=Math.min(g.R||8,9);}
+      else if(gt==='nova'){s=near>=2?2+near*.4:.2;rng=(g.R||5)*.85;}
+      else if(gt==='aoe'||gt==='field'||gt==='vortex'){s=(gt==='field'?1.1:1.7)+Math.min(3.2,(near-1)*.6)+(T.boss?1.2:0);rng=(g.rng||8)*.9;}
+      else if(gt==='volley'||gt==='beam'){s=1.8+Math.min(2,(near-1)*.4);rng=gt==='beam'?(g.len||9)*.95:9;}
+      else if(gt==='heal'){s=hpR<.5?6:-5;rng=99;}
+      else if(gt==='summon'){const n=G.ally.filter(a=>!a.dead&&a.owner===P).length;s=(n<4&&near>=1)?2.2:-9;rng=99;}
+      else if(gt==='pull'){s=(near>=2&&d>4)?1.4:-2;rng=(g.R||8)*.9;}
+      else if(gt==='sac'){s=(hpR>.75&&near>=2&&G.t-cl>28)?2.4:-9;rng=99;}
+      else{s=1.2;rng=8;}}
     else if(melee||K==='melee'||K==='cry'||K==='quake'){s=1+(id==='attack'?0:.6);rng=1.35+T.r;if(id==='whirl'||K==='cry'||K==='quake')s+=Math.min(3,(near-1)*.6);}
     else{/* 遠隔 */s=1.4;rng=9;if(K==='nova'||K==='meteor'||K==='divine'||K==='cone'||K==='chain'||S.ex&&(K==='arrow'&&/mult|rain|expl/.test(id)))s+=Math.min(3.5,(near-1)*.7);
       if(K==='nova'&&d>3.4)s-=2;if(K==='cone'&&d>4)s-=2;if(K==='beam'||K==='chain')s+=.3;}
@@ -13080,7 +13158,7 @@ function auSkill(T,en,d){
     /* マナ節約 */
     if(mc>0){s-=mc/Math.max(1,P.st.maxmp)*(mpR<.3?6:1.2);}
     if(id==='attack')s+=.05;
-    if(s>bs){bs=s;best={id,S,rng,melee:melee||K==='melee'||K==='cry'||K==='quake'};}
+    if(s>bs){bs=s;best={id,S,rng,melee:melee||K==='melee'||K==='cry'||K==='quake'||(K==='gx'&&S.g&&(S.g.t==='cleave'||S.g.t==='nova'||S.g.t==='pull'))};}
   }
   return best;
 }
@@ -13164,6 +13242,7 @@ function auTick(dt){
   AU.t-=dt;if(AU.t>0)return;AU.t=.12;
   if(UI.left==='shop'||G.shopOpen){UI.left=null;UI.right=false;G.shopOpen=false;UI.dirty=true;}
   auPotions();
+  try{auSpend();}catch(e){}
   /* 予兆回避 */
   const ob=AU.mode==='full'?auObjective():null;
   const dg=auDanger();
@@ -13181,7 +13260,7 @@ function auTick(dt){
     const T=auTarget(en);AU.tgt=T;
     if(T){const d=dst(P.x,P.y,T.x,T.y),pk=auSkill(T,en,d);
       if(pk){const inR=pk.rng>=99||(pk.melee?d<=pk.rng:(d<=pk.rng&&los(P.x,P.y,T.x,T.y,.2)));
-        if(inR){P.target=null;P.face=Math.atan2(T.y-P.y,T.x-P.x);if(P.cd<=0){const ok=castSkill(pk.id,T.x,T.y,T);if(ok===false)P.target={t:'mon',m:T};}auNote((T.boss?'ボス戦：':'')+(pk.S.n||'攻撃'));return;}
+        if(inR){P.target=null;P.face=Math.atan2(T.y-P.y,T.x-P.x);if(P.cd<=0){const ok=castSkill(pk.id,T.x,T.y,T);if(ok===false)P.target={t:'mon',m:T};else{AU.last=AU.last||{};AU.last[pk.id]=G.t;}}auNote((T.boss?'ボス戦：':'')+(pk.S.n||'攻撃'));return;}
         if(!pk.melee&&d<1.6&&T.rng<=0&&P.cls!=='warrior'){const a=Math.atan2(P.y-T.y,P.x-T.x);const tx=P.x+Math.cos(a)*2.2,ty=P.y+Math.sin(a)*2.2;if(!hitWall(tx,ty,P.r)){P.target={t:'move',x:tx,y:ty};auNote('距離を取る');return;}}
         if(los(P.x,P.y,T.x,T.y,.25)&&d<7)P.target={t:'move',x:T.x,y:T.y};else auGoto(T.x,T.y);auNote('接近中：'+(T.name||MT[T.type].n));return;}
       P.target={t:'mon',m:T};return;}
@@ -13834,7 +13913,7 @@ function galShot(kind,spec,cw,ch,scl,face,eq,cls){
   }finally{ctx=sv.ctx;P=sv.P;W=sv.W;H=sv.H;cam.x=sv.cx;cam.y=sv.cy;G.t=sv.t;}
   return c.toDataURL();
 }
-window.__dbg={m3dEquip,AUPK_LIST,showAuPick,auPickOk,MSHR,LD,EXV,AU,w2s,SX:()=>SX,SY:()=>SY,M3D,auToggle,auTick,UI,mapRef:()=>({map,WD,FD,tint,deco,TILES}),GLP,los,snapCam,EXS,EXD,EXI,exStart,exAssign,MT,ICO,icoCv,ICM,s3Cast,WFX,wfxAt,SK,CLS,HPC,pondTick,pondAt,PND,coachGo,saveGame,loadSave,EV4,ev4Fire,explode,spawnProj,FX2,fx2Spr,fx2Painter,fx2FireSpr,EV3,ev3Fire,ev3Use,ev3Give,ev3SL,wxSet,wxLightning,get HD3ON(){return HD3ON;},set HD3ON(v){HD3ON=v;},galShot,AREAS,evFire,evTick,HEV,stalkTick,mpAvatar,ultDrop,ultDropItem,hurtPlayer,deathBlast,GX_ZONES,isWall,los,nearestFloor,AI,ACT,spawnCurse,summonAt,raiseHostile,poisonP,detonate,bossSpecial,AREAS,THEMES,MT,makeMon,spawnAll,genLevel,CLS,SK,BASES,UNIQ,SETS,BUFF,mkItem,swapWeapons,newPlayer,itemHTML,eqGet,eqSet,showClassSelect,G,get P(){return P;},startGame,update,render,castSkill,genItem,recalc,enterFloor,killMon,hudHit,drinkPot,activate,findHoverMon,addAlly,raiseAlly,necroSkill,useShrine,spawnExtras,updateAllies,showWaypoints,corpseNear,SHRINES,scoutToggle,warpToBoss,scoutCount,guardCount,chaosCast,convertCorpse,convCount,confMon,NET,showTitle,netPack,netToSv,netFlush};
+window.__dbg={genItem,botNew,botCatchUp,botSpawn,botAI,botStart,botAutoGear,BOT,botSp,m3dEquip,AUPK_LIST,showAuPick,auPickOk,MSHR,LD,EXV,AU,w2s,SX:()=>SX,SY:()=>SY,M3D,auToggle,auTick,UI,mapRef:()=>({map,WD,FD,tint,deco,TILES}),GLP,los,snapCam,EXS,EXD,EXI,exStart,exAssign,MT,ICO,icoCv,ICM,s3Cast,WFX,wfxAt,SK,CLS,HPC,pondTick,pondAt,PND,coachGo,saveGame,loadSave,EV4,ev4Fire,explode,spawnProj,FX2,fx2Spr,fx2Painter,fx2FireSpr,EV3,ev3Fire,ev3Use,ev3Give,ev3SL,wxSet,wxLightning,get HD3ON(){return HD3ON;},set HD3ON(v){HD3ON=v;},galShot,AREAS,evFire,evTick,HEV,stalkTick,mpAvatar,ultDrop,ultDropItem,hurtPlayer,deathBlast,GX_ZONES,isWall,los,nearestFloor,AI,ACT,spawnCurse,summonAt,raiseHostile,poisonP,detonate,bossSpecial,AREAS,THEMES,MT,makeMon,spawnAll,genLevel,CLS,SK,BASES,UNIQ,SETS,BUFF,mkItem,swapWeapons,newPlayer,itemHTML,eqGet,eqSet,showClassSelect,G,get P(){return P;},startGame,update,render,castSkill,genItem,recalc,enterFloor,killMon,hudHit,drinkPot,activate,findHoverMon,addAlly,raiseAlly,necroSkill,useShrine,spawnExtras,updateAllies,showWaypoints,corpseNear,SHRINES,scoutToggle,warpToBoss,scoutCount,guardCount,chaosCast,convertCorpse,convCount,confMon,NET,showTitle,netPack,netToSv,netFlush};
 })();
 </script>
 </body>
