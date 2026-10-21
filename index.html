@@ -7060,6 +7060,62 @@ function m3dSheet(k){
   e=M3D.img[k]={ok:false,img:new Image(),m:d.m};e.img.onload=()=>{e.ok=true;};e.img.onerror=()=>{e.ok=false;};e.img.src=d.u;return null;
 }
 function m3dDir(face){const n=16;return ((Math.round(face/(6.2832/n))%n)+n)%n;}
+
+/* 装備の見た目（3Dスプライトの上に武器・盾・矢筒・宝珠を重ねる）layer 0=奥側 1=手前側 */
+function m3dEquip(x,y,layer){
+  const [fx,fy]=fdir(P.face),px=-fy,py=fx,eq=P.eq,back=fy<-.3;
+  const hw=2.7+2.6*Math.abs(fy),cx=x+fx*1.2,sy=y-27.5;
+  const wFront=py>=0;
+  const doW=layer===(wFront?1:0),doS=layer===(wFront?0:1);
+  if(doS&&eq.shield){
+    const sb_=BASEMAP[eq.shield.base]||{},sk2=sb_.sk||'r',rim=eq.shield.rar==='normal'?'#d4ac55':RC[eq.shield.rar];
+    const sh_x=cx-px*hw+fx*5,sh_y=sy+10.5-py*1.4+fy*1.8;
+    if(sk2==='q'){
+      ctx.save();ctx.translate(cx-fx*4-px*hw*.5,sy+5-fy*1.5);ctx.rotate(-.5);
+      ctx.fillStyle='#5a3a22';ctx.strokeStyle='rgba(0,0,0,.75)';ctx.lineWidth=1;ctx.fillRect(-2.2,-2,4.4,11);ctx.strokeRect(-2.2,-2,4.4,11);
+      ctx.fillStyle='#d9d4c0';for(let q=-1;q<=1;q++){ctx.beginPath();ctx.moveTo(q*1.4-.6,-2);ctx.lineTo(q*1.4,-6.5);ctx.lineTo(q*1.4+.6,-2);ctx.fill();}
+      ctx.restore();
+    }else if(sk2==='o'){
+      const gcol=eq.shield.rar==='normal'?'#7fb0ff':RC[eq.shield.rar];
+      ball(sh_x+fx*1.5,sh_y-4,3.6,gcol);ADD();glow(sh_x+fx*1.5,sh_y-4,15,rgbOf(gcol),.55+.15*Math.sin(G.t*3));NRM();
+    }else{
+      const sz=Math.min(8,4+(sb_.def||6)/8);drawShield(sh_x+fx*1.6,sh_y+.5,sz,sk2,rim,fy,back);
+    }
+  }
+  if(!doW)return;
+  const dur=P.swD||.28,prog=P.swing>0?clamp(1-P.swing/dur,0,1):0,sk=P.swing>0?P.swk:null;
+  const wb_=eq.weapon?BASEMAP[eq.weapon.base]:null,wvk=wb_&&wb_.vk?wb_.vk:'sw',wInfo=eq.weapon?[VKLEN[wvk]||17,wvk]:[13,'dag'];
+  const wl=wInfo[0],wrar=eq.weapon?eq.weapon.rar:'normal',tint=WTINT[wrar]||WTINT.normal,wrg=wrar==='normal'?null:rgbOf(RC[wrar]);
+  const hx0=cx+px*(hw+.6)+fx*4,hy0=sy+9+py*1.6+fy*1.5;
+  let hx=hx0,hy=hy0,bxv=fx*.45+px*.22,byv=-.9+fy*.15;{const bl=Math.hypot(bxv,byv);bxv/=bl;byv/=bl;}
+  let tx=hx+bxv*wl,ty=hy+byv*wl;
+  const ang0=Math.atan2(fy,fx);
+  if(P.spin>0){
+    ADD();ctx.lineCap='round';
+    for(let i=0;i<14;i++){const a=G.t*22-i*.17,al=(1-i/14)*.55;ctx.strokeStyle='rgba(215,230,255,'+al+')';ctx.lineWidth=5-i*.25;ctx.beginPath();ctx.ellipse(x,y-17,24,12,0,a,a+.2);ctx.stroke();}
+    NRM();
+    for(let i=0;i<2;i++){const a=G.t*22+i*Math.PI,bx=x+Math.cos(a)*7,by=y-17+Math.sin(a)*3.5;drawBlade(bx,by,x+Math.cos(a)*(wl+7),y-17+Math.sin(a)*(wl+7)*.5-1,wInfo[1],tint,wrg,1);}
+    return;
+  }
+  if(sk==='m'){
+    const sa=prog*2.4-1.2,k=Math.min(1,Math.sin(prog*Math.PI)*3.2),a=ang0+sa;
+    const sx=hx0+Math.cos(a)*3,sy2=hy0+Math.sin(a)*2,tx2=sx+Math.cos(a)*wl,ty2=sy2+Math.sin(a)*wl*.8-4;
+    hx=hx0+(sx-hx0)*k;hy=hy0+(sy2-hy0)*k;tx=tx+(tx2-tx)*k;ty=ty+(ty2-ty)*k;
+  }else if(sk==='c'){
+    const k=Math.sin(prog*Math.PI);hx=hx0+fx*7*k;hy=hy0-1.5*k;
+    tx=hx+fx*.35*wl*.7;ty=hy+wl*.68;
+  }
+  if(sk==='m'&&prog>.04){
+    ctx.save();ADD();const N=9,segO=[],segI=[];
+    for(let q=0;q<=N;q++){const a=ang0+(prog*q/N)*2.4-1.2;segO.push([hx0+Math.cos(a)*(3+wl*1.08),hy0+Math.sin(a)*(2+wl*.86)-4]);segI.push([hx0+Math.cos(a)*(3+wl*.3),hy0+Math.sin(a)*(2+wl*.24)-2]);}
+    const g=ctx.createLinearGradient(segO[0][0],segO[0][1],segO[N][0],segO[N][1]);g.addColorStop(0,'rgba(200,220,255,0)');g.addColorStop(1,wrg?'rgba('+wrg+',.7)':'rgba(255,248,230,.7)');
+    ctx.fillStyle=g;ctx.beginPath();ctx.moveTo(segO[0][0],segO[0][1]);for(const p of segO)ctx.lineTo(p[0],p[1]);for(let q=N;q>=0;q--)ctx.lineTo(segI[q][0],segI[q][1]);ctx.closePath();ctx.fill();
+    ctx.strokeStyle='rgba(255,255,255,.75)';ctx.lineWidth=1.6;ctx.beginPath();segO.forEach((p,q)=>q?ctx.lineTo(p[0],p[1]):ctx.moveTo(p[0],p[1]));ctx.stroke();ctx.restore();NRM();
+  }
+  ball(hx,hy,2.3,eq.gloves?((BASEMAP[eq.gloves.base]||{}).vc||'#8a6a4a'):'#c9a07a');
+  drawBlade(hx,hy,tx,ty,wInfo[1],tint,wrg,sk==='m');
+  if(sk==='c'){ADD();const k=Math.sin(prog*Math.PI),rgb=P.swc||'255,160,60';glow(hx+fx*3,hy-2,13+10*k,rgb,.55+.4*k);glow(hx+fx*3,hy-2,5+4*k,'255,255,235',.9);NRM();}
+}
 /* 主人公・NPC（drawPlayer内。ctxはCSスケール済み、x,yは足元） */
 function m3dPlayer(x,y){
   const e=m3dSheet(P.cls);if(!e)return false;
@@ -7069,8 +7125,10 @@ function m3dPlayer(x,y){
   const s=38/(0.82*ch);const dw=cw*s,dh=ch*s;
   ctx.save();
   if(sw){const [fx,fy]=fdir(P.face);const k=Math.min(1,P.swing/(P.swD||.28));ctx.translate(fx*3*(1-k),fy*1.5*(1-k));ctx.translate(x,y);ctx.scale(1+.06*(1-k),1-.04*(1-k));ctx.translate(-x,-y);}
+  m3dEquip(x,y,0);
   ctx.drawImage(e.img,f*cw,d*ch,cw,ch,x-m.ax*s,y-m.ay*s,dw,dh);
-  if(P.flash>0){ctx.globalCompositeOperation='lighter';ctx.globalAlpha=.6;ctx.drawImage(e.img,f*cw,d*ch,cw,ch,x-m.ax*s,y-m.ay*s,dw,dh);}
+  if(P.flash>0){const ga=ctx.globalAlpha;ctx.globalCompositeOperation='lighter';ctx.globalAlpha=.6;ctx.drawImage(e.img,f*cw,d*ch,cw,ch,x-m.ax*s,y-m.ay*s,dw,dh);ctx.globalCompositeOperation='source-over';ctx.globalAlpha=ga;}
+  m3dEquip(x,y,1);
   ctx.restore();return true;
 }
 /* ボス（drawMonLive内。ctxはCSスケール済み） */
@@ -13776,7 +13834,7 @@ function galShot(kind,spec,cw,ch,scl,face,eq,cls){
   }finally{ctx=sv.ctx;P=sv.P;W=sv.W;H=sv.H;cam.x=sv.cx;cam.y=sv.cy;G.t=sv.t;}
   return c.toDataURL();
 }
-window.__dbg={AUPK_LIST,showAuPick,auPickOk,MSHR,LD,EXV,AU,w2s,SX:()=>SX,SY:()=>SY,M3D,auToggle,auTick,UI,mapRef:()=>({map,WD,FD,tint,deco,TILES}),GLP,los,snapCam,EXS,EXD,EXI,exStart,exAssign,MT,ICO,icoCv,ICM,s3Cast,WFX,wfxAt,SK,CLS,HPC,pondTick,pondAt,PND,coachGo,saveGame,loadSave,EV4,ev4Fire,explode,spawnProj,FX2,fx2Spr,fx2Painter,fx2FireSpr,EV3,ev3Fire,ev3Use,ev3Give,ev3SL,wxSet,wxLightning,get HD3ON(){return HD3ON;},set HD3ON(v){HD3ON=v;},galShot,AREAS,evFire,evTick,HEV,stalkTick,mpAvatar,ultDrop,ultDropItem,hurtPlayer,deathBlast,GX_ZONES,isWall,los,nearestFloor,AI,ACT,spawnCurse,summonAt,raiseHostile,poisonP,detonate,bossSpecial,AREAS,THEMES,MT,makeMon,spawnAll,genLevel,CLS,SK,BASES,UNIQ,SETS,BUFF,mkItem,swapWeapons,newPlayer,itemHTML,eqGet,eqSet,showClassSelect,G,get P(){return P;},startGame,update,render,castSkill,genItem,recalc,enterFloor,killMon,hudHit,drinkPot,activate,findHoverMon,addAlly,raiseAlly,necroSkill,useShrine,spawnExtras,updateAllies,showWaypoints,corpseNear,SHRINES,scoutToggle,warpToBoss,scoutCount,guardCount,chaosCast,convertCorpse,convCount,confMon,NET,showTitle,netPack,netToSv,netFlush};
+window.__dbg={m3dEquip,AUPK_LIST,showAuPick,auPickOk,MSHR,LD,EXV,AU,w2s,SX:()=>SX,SY:()=>SY,M3D,auToggle,auTick,UI,mapRef:()=>({map,WD,FD,tint,deco,TILES}),GLP,los,snapCam,EXS,EXD,EXI,exStart,exAssign,MT,ICO,icoCv,ICM,s3Cast,WFX,wfxAt,SK,CLS,HPC,pondTick,pondAt,PND,coachGo,saveGame,loadSave,EV4,ev4Fire,explode,spawnProj,FX2,fx2Spr,fx2Painter,fx2FireSpr,EV3,ev3Fire,ev3Use,ev3Give,ev3SL,wxSet,wxLightning,get HD3ON(){return HD3ON;},set HD3ON(v){HD3ON=v;},galShot,AREAS,evFire,evTick,HEV,stalkTick,mpAvatar,ultDrop,ultDropItem,hurtPlayer,deathBlast,GX_ZONES,isWall,los,nearestFloor,AI,ACT,spawnCurse,summonAt,raiseHostile,poisonP,detonate,bossSpecial,AREAS,THEMES,MT,makeMon,spawnAll,genLevel,CLS,SK,BASES,UNIQ,SETS,BUFF,mkItem,swapWeapons,newPlayer,itemHTML,eqGet,eqSet,showClassSelect,G,get P(){return P;},startGame,update,render,castSkill,genItem,recalc,enterFloor,killMon,hudHit,drinkPot,activate,findHoverMon,addAlly,raiseAlly,necroSkill,useShrine,spawnExtras,updateAllies,showWaypoints,corpseNear,SHRINES,scoutToggle,warpToBoss,scoutCount,guardCount,chaosCast,convertCorpse,convCount,confMon,NET,showTitle,netPack,netToSv,netFlush};
 })();
 </script>
 </body>
