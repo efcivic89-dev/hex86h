@@ -5539,14 +5539,19 @@ function trEnsureBox(){
   b.addEventListener('change',e=>{if(e.target.id==='trg'){let v=Math.floor(+e.target.value||0);v=Math.max(0,Math.min(P.gold,v));if(v!==TR.g&&TR.res===0){TR.g=v;trChanged();}else trRender();}});
   b.addEventListener('mousemove',e=>{const el=e.target.closest('[data-tip]');if(el){const h=tipFor(el.dataset.tip);if(h){showTip(h,e.clientX,e.clientY);UI.tipFrom='dom';return;}}if(UI.tipFrom==='dom')hideTip();});
   b.addEventListener('mouseleave',()=>{if(UI.tipFrom==='dom')hideTip();});
-  const st=document.createElement('style');st.textContent=`#trade .trbox{background:linear-gradient(#1b1510,#0d0a08);border:2px solid #5a4528;box-shadow:0 10px 36px rgba(0,0,0,.8);padding:12px 14px;width:min(560px,94vw);max-height:92vh;overflow:auto;color:#e7dcc4;font-size:13px}
-#trade h3{margin:0 0 8px;color:var(--gold);font-size:16px;display:flex;justify-content:space-between}#trade .x{cursor:pointer;padding:0 6px}
-#trade .trcols{display:grid;grid-template-columns:1fr 1fr;gap:10px}#trade .trcol{border:1px solid #4a3a22;border-radius:8px;padding:6px 8px;background:rgba(0,0,0,.25)}
-#trade h4{margin:0 0 6px;font-size:13px;color:#cdbf9f}#trade .trgrid{display:grid;grid-template-columns:repeat(4,38px);gap:2px;min-height:40px}
-#trade .bag{grid-template-columns:repeat(10,34px)}#trade .bag .cell{width:34px;height:34px;font-size:17px}
+  const st=document.createElement('style');st.textContent=`#trade .trbox{background:linear-gradient(#1b1510,#0d0a08);border:2px solid #5a4528;box-shadow:0 10px 36px rgba(0,0,0,.8);padding:10px 12px;width:min(900px,96vw);max-height:calc(100vh - 12px);max-height:calc(100dvh - 12px);display:flex;flex-direction:column;overflow:hidden;color:#e7dcc4;font-size:13px;box-sizing:border-box}
+#trade h3{margin:0 0 8px;color:var(--gold);font-size:16px;display:flex;justify-content:space-between;flex:none}#trade .x{cursor:pointer;padding:0 6px}
+#trade .trmain{display:grid;grid-template-columns:minmax(250px,1fr) minmax(0,1.15fr);gap:10px;min-height:0;flex:1}
+#trade .trl{display:flex;flex-direction:column;gap:8px;min-height:0;overflow:auto;-webkit-overflow-scrolling:touch}
+#trade .trr{display:flex;flex-direction:column;min-height:0}#trade .trr .bag{overflow:auto;-webkit-overflow-scrolling:touch;align-content:start;flex:1;min-height:0}
+#trade .trcol{border:1px solid #4a3a22;border-radius:8px;padding:6px 8px;background:rgba(0,0,0,.25)}
+#trade h4{margin:0 0 6px;font-size:13px;color:#cdbf9f}#trade .trgrid{display:grid;grid-template-columns:repeat(auto-fill,36px);gap:2px;min-height:38px}
+#trade .bag{display:grid;grid-template-columns:repeat(auto-fill,36px);gap:2px;justify-content:start}#trade .bag .cell,#trade .trgrid .cell{width:36px;height:36px;font-size:18px}
 #trade .cell.off{opacity:.35;outline:2px solid var(--gold)}#trade input{width:96px;background:#0a0806;border:1px solid #5a4528;color:#ffe46e;padding:3px 6px;font-size:14px}
-#trade .btns{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}#trade .btn{width:auto;min-width:110px;padding:8px 16px}#trade .pl{display:flex;gap:8px;align-items:center;margin:6px 0}
-@media (max-height:520px){#trade .trbox{padding:8px 10px;font-size:12px}#trade .bag{grid-template-columns:repeat(13,28px)}#trade .bag .cell{width:28px;height:28px;font-size:14px}#trade .trgrid{grid-template-columns:repeat(8,30px)}#trade .trgrid .cell{width:30px;height:30px;font-size:15px}}`;
+#trade .btns{display:flex;flex-direction:row;gap:8px;flex-wrap:nowrap;align-items:stretch;margin:4px 0}#trade .btn{width:auto;flex:1 1 0;min-width:0;height:auto;margin:0;padding:8px 10px;font-size:14px;line-height:1.2}#trade .pl{display:flex;gap:8px;align-items:center;margin:6px 0;flex-wrap:wrap}
+#trade .sub{font-size:11px;color:#8a8070;margin-bottom:4px}#trade .trst{color:#cdbf9f;min-height:18px}
+@media (max-width:640px){#trade .trmain{grid-template-columns:1fr;overflow:auto}#trade .trl,#trade .trr{overflow:visible}#trade .trr .bag{max-height:34vh}}
+@media (max-height:520px){#trade .trbox{padding:6px 8px;font-size:12px;max-height:calc(100vh - 6px);max-height:calc(100dvh - 6px)}#trade h3{margin:0 0 4px;font-size:14px}#trade .trmain{gap:8px}#trade .trl{gap:5px}#trade .trcol{padding:4px 6px}#trade h4{margin:0 0 3px;font-size:12px}#trade .trgrid{grid-template-columns:repeat(auto-fill,30px);min-height:30px}#trade .bag{grid-template-columns:repeat(auto-fill,30px)}#trade .bag .cell,#trade .trgrid .cell{width:30px;height:30px;font-size:15px}#trade .btn{padding:5px 8px;font-size:12px}#trade .note{display:none}}`;
   document.head.appendChild(st);return b;
 }
 function trRender(){
@@ -5564,17 +5569,19 @@ function trRender(){
   const thIt=joined?(th.it||[]):[];
   const thCells=thIt.map((it,i)=>it&&it.name?trCell(it,'x',i,'trT'):'').join('');
   const thG=joined?Math.max(0,Math.floor(+th.g||0)):0;
-  const bag=P.bag.map((it,i)=>{const on=it&&TR.it.some(o=>o.id===it.id);return `<div class="cell ${it?'r-'+it.rar:''} ${on?'off':''}" ${it?`data-tr="add" data-i="${i}" data-tip="inv:${i}"`:''}>${it?icoOf(it):''}</div>`;}).join('');
+  let lastB=0;P.bag.forEach((it,i)=>{if(it)lastB=i+1;});const nB=Math.min(P.bag.length,Math.max(48,Math.ceil(lastB/12)*12+12));
+  const bag=P.bag.slice(0,nB).map((it,i)=>{const on=it&&TR.it.some(o=>o.id===it.id);return `<div class="cell ${it?'r-'+it.rar:''} ${on?'off':''}" ${it?`data-tr="add" data-i="${i}" data-tip="inv:${i}"`:''}>${it?icoOf(it):''}</div>`;}).join('');
   const myAck=joined&&TR.ack>0&&TR.ack===(th.v|0);
   const status=!joined?'相手の返事を待っています…':locked?'確定処理中…':myAck?'相手の承諾を待っています':theirAck?'相手が承諾しました。内容を確認して承諾してください':'提供する品と金貨を決めて「承諾」を押してください';
   b.innerHTML=`<div class="trbox"><h3><span>🤝 トレード ― ${nEsc(trName(TR.with))}</span><span class="x" data-tr="cancel">×</span></h3>
-  <div class="trcols"><div class="trcol"><h4>あなたの提供 ${myAck?'<span style="color:#7fc88a">✔承諾</span>':''}</h4><div class="trgrid">${myCells}</div>
-   <div style="margin-top:6px">金貨 <input id="trg" type="number" min="0" max="${P.gold}" value="${TR.g}" ${locked?'disabled':''}> G <span style="color:#8a8070">/ 所持 ${P.gold}G</span></div></div>
-  <div class="trcol"><h4>${nEsc(trName(TR.with))}の提供 ${theirAck?'<span style="color:#7fc88a">✔承諾</span>':''}</h4><div class="trgrid">${thCells}</div><div style="margin-top:6px">金貨 <b style="color:#ffe46e">${thG}G</b></div></div></div>
-  <div class="sub">バッグ（クリックで提供に追加／提供欄のアイテムをクリックで取り消し）</div><div class="bag">${bag}</div>
-  <div style="margin:8px 0;color:#cdbf9f;min-height:18px">${status}</div>
-  <div class="sub">※ 双方が承諾した瞬間に確定します。受け取る側の持ち物に空きが無い、または金貨が足りない場合は、トレード全体がキャンセルされます。</div>
-  <div class="btns">${myAck?`<button class="btn ghost" data-tr="unacc" ${locked?'disabled':''}>承諾を取り消す</button>`:`<button class="btn pri" data-tr="acc" ${(!joined||locked)?'disabled':''}>承諾</button>`}<button class="btn ghost" data-tr="cancel">キャンセル</button></div></div>`;
+  <div class="trmain"><div class="trl">
+   <div class="trcol"><h4>あなたの提供 ${myAck?'<span style="color:#7fc88a">✔承諾</span>':''}</h4><div class="trgrid">${myCells}</div>
+    <div style="margin-top:6px">金貨 <input id="trg" type="number" min="0" max="${P.gold}" value="${TR.g}" ${locked?'disabled':''}> G <span style="color:#8a8070">/ 所持 ${P.gold}G</span></div></div>
+   <div class="trcol"><h4>${nEsc(trName(TR.with))}の提供 ${theirAck?'<span style="color:#7fc88a">✔承諾</span>':''}</h4><div class="trgrid">${thCells}</div><div style="margin-top:6px">金貨 <b style="color:#ffe46e">${thG}G</b></div></div>
+   <div class="trst">${status}</div>
+   <div class="btns">${myAck?`<button class="btn ghost" data-tr="unacc" ${locked?'disabled':''}>承諾を取り消す</button>`:`<button class="btn pri" data-tr="acc" ${(!joined||locked)?'disabled':''}>承諾</button>`}<button class="btn ghost" data-tr="cancel">キャンセル</button></div>
+   <div class="sub note">※ 双方が承諾した瞬間に確定します。受け取る側の持ち物に空きが無い、または金貨が足りない場合は、トレード全体がキャンセルされます。</div>
+  </div><div class="trr"><div class="sub">バッグ（タップで提供に追加／提供欄のアイテムをタップで取り消し）</div><div class="bag">${bag}</div></div></div></div>`;
 }
 function trClick(e){
   const el=e.target.closest('[data-tr]');if(!el)return;const a=el.dataset.tr;e.stopPropagation();
@@ -11245,7 +11252,7 @@ $('overlay').addEventListener('click',e=>{
   else if(a==='cont'){mobAutoFull();const sv=loadSave();if(sv)startGameUI(sv);else showClassSelect(false);}
   else if(a==='gfx'){GFX=+el.dataset.n;try{localStorage.setItem('fs_gfx',String(GFX));}catch(e){}resize();if(G.state==='title')showTitle();else if(G.paused)showPause();}
   else if(a==='vz'){VZ=+el.dataset.n;try{localStorage.setItem('fs_vz3',String(VZ));}catch(e){}resize();if(G.state==='title')showTitle();else if(G.paused)showPause();}
-  else if(a==='monx'){MONX=+el.dataset.n;try{localStorage.setItem('fs_monx',String(MONX));}catch(e){}if(G.state==='title')showTitle();else if(G.paused)showPause();}
+  else if(a==='monx'){if(MP.playing&&MP.role==='guest'){msg('敵の数はリーダーの設定に従います','#ff9d7a');sfx('err');return;}MONX=+el.dataset.n;try{localStorage.setItem('fs_monx',String(MONX));}catch(e){}if(G.state==='title')showTitle();else if(G.paused)showPause();}
   else if(a==='help'){showHelp();}
   else if(a==='gltog'){glpSet(!(glpWant()&&!GLP.fail));el.textContent='描画: '+(glpWant()&&!GLP.fail?'WebGL仕上げ':'通常(2D)');msg('描画モード: '+(glpWant()&&!GLP.fail?'WebGL仕上げ':'通常(2D)'),'#bfe9ff');}
   else if(a==='back'){showTitle();}
@@ -13365,7 +13372,7 @@ function showAuPick(){
 const AU_EL={fire:'fire',cold:'cold',light:'light',pois:'pois',psn:'pois',arcane:'arc',shadow:'arc',phys:'phys'};
 function auToggle(on,mode){
   AU.on=on==null?!AU.on:!!on;if(mode){AU.mode=mode;try{localStorage.setItem('fs_auto_mode',mode);}catch(e){}}
-  if(AU.on){AU.dest=null;AU.dn='';AU.st=0;msg(AU.mode==='full'?'オート攻略 ON ― 戦闘・クエスト・ダンジョンを自動で進めます（Oで解除）':'オート戦闘 ON ― 近くの敵と自動で戦います（Oで解除）','#9fe0ff');}
+  if(AU.on){AU.dest=null;AU.dn='';AU.st=0;msg(MP.playing&&MP.role==='guest'?'オート随行 ON ― リーダーを追いかけ、近くの敵を自動で攻撃します（Oで解除）':AU.mode==='full'?'オート攻略 ON ― 戦闘・クエスト・ダンジョンを自動で進めます（Oで解除）':'オート戦闘 ON ― 近くの敵と自動で戦います（Oで解除）','#9fe0ff');}
   else{msg('オート OFF','#9fe0ff');P.target=null;AU.note='';}
   UI.dirty=true;
 }
@@ -13383,6 +13390,7 @@ function auGoto(x,y,name){
   P.target={t:'move',x:s[0],y:s[1]};return true;
 }
 /* ---- 敵の評価 ---- */
+function auLeader(){const R=MP.meta&&MP.rem[MP.meta.host];return R&&R.fl===G.floor&&!R.d&&R.tx!=null?R:null;}
 function auEnemies(R){
   const out=[];for(const m of G.mon){if(m.dead||m.ally||m.owner===P)continue;const d=dst(P.x,P.y,m.x,m.y);if(d>R)continue;
     if(!m.aggro&&!vis[Math.floor(m.y)*MW+Math.floor(m.x)])continue;out.push([d,m]);}
@@ -13567,6 +13575,8 @@ function auTick(dt){
   const bossOb=ob&&ob.o&&ob.o.boss,hpR0=P.hp/P.st.maxhp;
   let en=auEnemies(ob&&!bossOb?3.8:(AU.mode==='full'?8:13));
   if(ob&&!bossOb&&en.length&&en.length<3&&hpR0>.55&&en[0][0]>1.9)en=[];
+  const fol=MP.playing&&MP.role==='guest',LR=fol?auLeader():null;
+  if(fol&&LR){const dl=dst(P.x,P.y,LR.x,LR.y);if(dl>16||(!en.length&&dl>(AU.chs?2.4:4.5))){AU.chs=1;auGoto(LR.x,LR.y);auNote('リーダーを追尾');return;}if(AU.chs){AU.chs=0;if(P.target&&P.target.t==='move')P.target=null;}}
   /* 戦闘 */
   if(en.length&&!P.vil){
     const T=auTarget(en);AU.tgt=T;
@@ -13578,6 +13588,7 @@ function auTick(dt){
       P.target={t:'mon',m:T};return;}
   }
   AU.tgt=null;
+  if(fol){auNote(LR?'リーダーに随行':'リーダー待ち');return;}
   if(AU.mode!=='full')return;
   if(!ob){auNote('待機');return;}
   /* 目的地へ */
@@ -13592,7 +13603,7 @@ function auTick(dt){
 function auDrawHud(){
   if(!AU.on||G.state!=='play')return;
   const x=W/2,y=MOB.on?30:18;ctx.save();ctx.setTransform(DPR,0,0,DPR,0,0);ctx.textAlign='center';ctx.font='700 12px '+FONT;
-  const t=(AU.mode==='full'?'⚙ オート攻略':'⚙ オート戦闘')+(AU.note?'　'+AU.note:'');const w=ctx.measureText(t).width+22;
+  const t=(MP.playing&&MP.role==='guest'?'⚙ オート随行（リーダーに任せる）':AU.mode==='full'?'⚙ オート攻略':'⚙ オート戦闘')+(AU.note?'　'+AU.note:'');const w=ctx.measureText(t).width+22;
   ctx.fillStyle='rgba(0,0,0,.55)';ctx.fillRect(x-w/2,y-11,w,20);ctx.strokeStyle='rgba(159,224,255,.7)';ctx.lineWidth=1;ctx.strokeRect(x-w/2+.5,y-10.5,w-1,19);
   ctx.fillStyle='#9fe0ff';ctx.fillText(t,x,y+4);ctx.restore();
 }
@@ -13755,7 +13766,7 @@ function showCreateRoom(){
 async function mpCreate(){
   const nm=(document.getElementById('mp_rn').value||'').trim().slice(0,24)||'ルーム',mx=+document.getElementById('mp_rm').value||4,mode=document.getElementById('mp_mode').value==='approval'?'approval':'open';
   const db=NET.db,uid=NET.user.uid,rid=db.ref('rooms').push().key,me=mpMe();
-  const meta={host:uid,hostName:me.name,name:nm,mode,max:mx,state:'lobby',seed:0,floor:1,diff:0,fseq:0,at:firebase.database.ServerValue.TIMESTAMP};
+  const meta={host:uid,hostName:me.name,name:nm,mode,max:mx,state:'lobby',seed:0,floor:1,diff:0,fseq:0,monx:MONX,at:firebase.database.ServerValue.TIMESTAMP};
   try{
     await db.ref().update({['rooms/'+rid]:{meta,members:{[uid]:me}},['lobby/'+rid]:{host:uid,hostName:me.name,name:nm,mode,max:mx,n:1,state:'lobby',at:firebase.database.ServerValue.TIMESTAMP}});
     db.ref('rooms/'+rid).onDisconnect().remove();db.ref('lobby/'+rid).onDisconnect().remove();
@@ -13782,7 +13793,7 @@ function mpEnter(rid,role){
   mpOn(db.ref('rooms/'+rid+'/meta'),'value',s=>{
     const v=s.val();if(!v){mpEnded(role==='host'?'':'ホストがルームを閉じました');return;}
     const prev=MP.meta;MP.meta=v;
-    if(MP.playing){if(role==='guest'&&v.fseq!==MP.seenSeq&&v.fseq>0){MP.seenSeq=v.fseq;MP.allowEnter=true;G.diff=v.diff;enterFloor(v.floor,{cave:!!v.cave,back:!v.cave&&!!G.cave});}return;}
+    if(MP.playing){if(role==='guest'&&v.fseq!==MP.seenSeq&&v.fseq>0){MP.seenSeq=v.fseq;MP.allowEnter=true;G.diff=v.diff;if(v.monx>=1&&v.monx<=10)MONX=v.monx;enterFloor(v.floor,{cave:!!v.cave,back:!v.cave&&!!G.cave});}return;}
     mpRenderRoom();
     if(role==='guest'&&MP.joined&&v.state==='playing')mpBegin();
   });
@@ -13813,7 +13824,7 @@ function mpRenderRoom(){
   const m=MP.meta;if(!m||document.getElementById('mpr_info')==null)return;
   const host=MP.role==='host',uid=MP.uid,ids=Object.keys(MP.members);
   document.getElementById('mpr_t').textContent=m.name;
-  document.getElementById('mpr_info').innerHTML=`ホスト: <b>${nEsc(m.hostName)}</b> ・ ${m.mode==='open'?'誰でも参加OK':'ホスト承認制'} ・ ${ids.length}/${m.max}人 ・ ${m.state==='playing'?'プレイ中':'待機中'}${MP.waiting?'<br><span style="color:#ffd890">ホストの承認を待っています…</span>':''}`;
+  document.getElementById('mpr_info').innerHTML=`ホスト: <b>${nEsc(m.hostName)}</b> ・ ${m.mode==='open'?'誰でも参加OK':'ホスト承認制'} ・ ${ids.length}/${m.max}人 ・ 敵の数 ${(host?MONX:m.monx)||10}倍 ・ ${m.state==='playing'?'プレイ中':'待機中'}${MP.waiting?'<br><span style="color:#ffd890">ホストの承認を待っています…</span>':''}`;
   document.getElementById('mpr_req').innerHTML=host?Object.keys(MP.reqs).map(id=>{const r=MP.reqs[id];return `<div class="ncrow" style="border-color:#d8b46f"><div>参加申請: <b>${nEsc(r.name)}</b> ${nEsc(mpCls(r.cls))} Lv${r.lvl|0}</div><div><button class="btn" data-act="n_mp_ok" data-id="${nEsc(id)}" style="padding:5px 12px">許可</button> <button class="btn ghost" data-act="n_mp_no" data-id="${nEsc(id)}" style="padding:5px 12px">拒否</button></div></div>`;}).join(''):'';
   {const mk=(id)=>{const r=MP.members[id],me=id===uid;let img;
       if(me&&NET.chars&&NET.chars[MP.charId]){const c=NET.chars[MP.charId];img=mpAvatar(r.cls,mpEqOf(c),'s'+(c.updatedAt||0)+'|'+(c.level|0));}else img=mpAvatar(r.cls,null,'');
@@ -13830,7 +13841,7 @@ function mpSay(){
 }
 function mpEnded(note){
   if(MP.leaving)return;
-  const wasPlay=MP.playing;mpOffAll();MP.playing=false;MP.rid=null;MP.role=null;MP.waiting=false;MP.joined=false;MP.snap=null;MP.rem={};MP.al={};
+  const wasPlay=MP.playing;mpOffAll();if(MP.monx0){MONX=MP.monx0;MP.monx0=0;}MP.playing=false;MP.rid=null;MP.role=null;MP.waiting=false;MP.joined=false;MP.snap=null;MP.rem={};MP.al={};
   G.ally=G.ally.filter(a=>!a.remote);mpHudHide();
   if(wasPlay&&G.state==='play'){msg(note||'協力プレイを終了しました（ソロに戻ります）','#ffd890');for(const m of G.mon)m.tx=null;}
   else showLobby(note||'');
@@ -13840,7 +13851,7 @@ async function mpLeave(toTitle){
   const rid=MP.rid,role=MP.role,uid=MP.uid,db=NET.db;
   try{if(rid){if(role==='host')await db.ref().update({['rooms/'+rid]:null,['lobby/'+rid]:null});
     else await db.ref().update({['rooms/'+rid+'/members/'+uid]:null,['rooms/'+rid+'/pl/'+uid]:null,['rooms/'+rid+'/requests/'+uid]:null});}}catch(e){}
-  const wasPlay=MP.playing;mpOffAll();MP.playing=false;MP.rid=null;MP.role=null;MP.waiting=false;MP.joined=false;MP.snap=null;MP.rem={};MP.al={};
+  const wasPlay=MP.playing;mpOffAll();if(MP.monx0){MONX=MP.monx0;MP.monx0=0;}MP.playing=false;MP.rid=null;MP.role=null;MP.waiting=false;MP.joined=false;MP.snap=null;MP.rem={};MP.al={};
   G.ally=G.ally.filter(a=>!a.remote);mpHudHide();
   MP.leaving=false;if(wasPlay){try{saveGame();}catch(e){}G.paused=false;showTitle();}else showLobby();
 }
@@ -13849,23 +13860,25 @@ async function mpStart(){
   const m=MP.meta;if(!m||!MP.charId||!NET.chars||!NET.chars[MP.charId])return;
   if(MP.role==='host'&&m.state!=='playing'){
     const c=NET.chars[MP.charId],pg=netJ(c.progress)||{};const seed=Math.floor(Math.random()*2147483646)+1;
-    MP.meta=Object.assign({},m,{state:'playing',seed,floor:pg.floor||1,diff:pg.diff||0,fseq:1});
-    try{await NET.db.ref('rooms/'+MP.rid+'/meta').update({state:'playing',seed,floor:MP.meta.floor,diff:MP.meta.diff,fseq:1});NET.db.ref('lobby/'+MP.rid).update({state:'playing'}).catch(()=>{});}catch(e){return;}
+    MP.meta=Object.assign({},m,{state:'playing',seed,floor:pg.floor||1,diff:pg.diff||0,fseq:1,monx:MONX});
+    try{await NET.db.ref('rooms/'+MP.rid+'/meta').update({state:'playing',seed,floor:MP.meta.floor,diff:MP.meta.diff,fseq:1,monx:MONX});NET.db.ref('lobby/'+MP.rid).update({state:'playing'}).catch(()=>{});}catch(e){return;}
   }
   mpBegin();
 }
 function mpBegin(){
   if(MP.playing)return;const m=MP.meta,c=NET.chars&&NET.chars[MP.charId];if(!m||!c)return;
   const sv=netToSv(c,MP.charId);sv.floor=m.floor||1;sv.diff=m.diff||0;
+  MP.monx0=MONX;if(MP.role==='guest'&&m.monx>=1&&m.monx<=10)MONX=m.monx;
   MP.playing=true;MP.first=false;MP.seenSeq=m.fseq|0;MP.allowEnter=true;MP.k=0;MP.eqSig='';MP.t={pl:0,ms:0,hit:0,dd:0,wake:0,hud:0,hurt:0,ally:0,heal:0};MP.hitQ={};MP.hq={};MP.healq={};MP.auAcc=0;MP.deadSet=new Set();MP.snap=null;MP.ddSnap=null;
   NET.form=false;startGame(sv);mpHud();
+  if(m.cave){MP.allowEnter=true;enterFloor(m.floor||1,{cave:true});}
   msg(MP.role==='host'?'協力プレイを開始しました（あなたがホスト）':'ホストのダンジョンに参加しました','#8fd0a0');
 }
 function mpOnFloor(){
   MP.nmap=new Map();G.mon.forEach((m,i)=>{m.nid=i;MP.nmap.set(i,m);});MP.nextNid=G.mon.length;MP.deadSet=new Set();MP.snap=null;MP.ddSnap=null;MP.al={};
   G.ally=G.ally.filter(a=>!a.remote);
   if(MP.role==='host'){MP.meta.fseq=(MP.meta.fseq|0)+(MP.first?1:0);MP.first=true;MP.seenSeq=MP.meta.fseq;
-    NET.db.ref('rooms/'+MP.rid+'/meta').update({floor:G.floor,diff:G.diff,fseq:MP.meta.fseq,cave:G.cave?1:0}).catch(()=>{});NET.db.ref('rooms/'+MP.rid+'/ms').remove().catch(()=>{});NET.db.ref('rooms/'+MP.rid+'/dd').remove().catch(()=>{});}
+    MP.meta.monx=MONX;NET.db.ref('rooms/'+MP.rid+'/meta').update({floor:G.floor,diff:G.diff,fseq:MP.meta.fseq,cave:G.cave?1:0,monx:MONX}).catch(()=>{});NET.db.ref('rooms/'+MP.rid+'/ms').remove().catch(()=>{});NET.db.ref('rooms/'+MP.rid+'/dd').remove().catch(()=>{});}
   if(MP.role==='guest')MP.first=true;
 }
 /* --- 位置同期 --- */
@@ -14228,7 +14241,7 @@ function galShot(kind,spec,cw,ch,scl,face,eq,cls){
   }finally{ctx=sv.ctx;P=sv.P;W=sv.W;H=sv.H;cam.x=sv.cx;cam.y=sv.cy;G.t=sv.t;}
   return c.toDataURL();
 }
-window.__dbg={showWaypoints,trToggle,showPause,showAuPick,showBots,openPetCfg,mobSheetHide,showHelp,hideOverlay,killMon,coachGo,vqGet,bbPrune,BOT,botNew,botSpawn,bagTidy,tidyWeak,autoBest,stashOpen,ev5Fire,EV5,ev5Tick,evFire,HEV,evTick,netPack,netToSv,enterFloor,genItem,botNew,botCatchUp,botSpawn,botAI,botStart,botAutoGear,BOT,botSp,m3dEquip,AUPK_LIST,showAuPick,auPickOk,MSHR,LD,EXV,AU,w2s,SX:()=>SX,SY:()=>SY,M3D,auToggle,auTick,UI,mapRef:()=>({map,WD,FD,tint,deco,TILES}),GLP,los,snapCam,EXS,EXD,EXI,exStart,exAssign,MT,ICO,icoCv,ICM,s3Cast,WFX,wfxAt,SK,CLS,HPC,pondTick,pondAt,PND,coachGo,saveGame,loadSave,EV4,ev4Fire,explode,spawnProj,FX2,fx2Spr,fx2Painter,fx2FireSpr,EV3,ev3Fire,ev3Use,ev3Give,ev3SL,wxSet,wxLightning,get HD3ON(){return HD3ON;},set HD3ON(v){HD3ON=v;},galShot,AREAS,evFire,evTick,HEV,stalkTick,mpAvatar,ultDrop,ultDropItem,hurtPlayer,deathBlast,GX_ZONES,isWall,los,nearestFloor,AI,ACT,spawnCurse,summonAt,raiseHostile,poisonP,detonate,bossSpecial,AREAS,THEMES,MT,makeMon,spawnAll,genLevel,CLS,SK,BASES,UNIQ,SETS,BUFF,mkItem,swapWeapons,newPlayer,itemHTML,eqGet,eqSet,showClassSelect,G,get P(){return P;},startGame,update,render,castSkill,genItem,recalc,enterFloor,killMon,hudHit,drinkPot,activate,findHoverMon,addAlly,raiseAlly,necroSkill,useShrine,spawnExtras,updateAllies,showWaypoints,corpseNear,SHRINES,scoutToggle,warpToBoss,scoutCount,guardCount,chaosCast,convertCorpse,convCount,confMon,NET,showTitle,netPack,netToSv,netFlush};
+window.__dbg={mpEnter,mpStart,TR,MP,NET,trRender,mpTick,mpOnFloor,mpBegin,get MONX(){return MONX;},set MONX(v){MONX=v;},showWaypoints,trToggle,showPause,showAuPick,showBots,openPetCfg,mobSheetHide,showHelp,hideOverlay,killMon,coachGo,vqGet,bbPrune,BOT,botNew,botSpawn,bagTidy,tidyWeak,autoBest,stashOpen,ev5Fire,EV5,ev5Tick,evFire,HEV,evTick,netPack,netToSv,enterFloor,genItem,botNew,botCatchUp,botSpawn,botAI,botStart,botAutoGear,BOT,botSp,m3dEquip,AUPK_LIST,showAuPick,auPickOk,MSHR,LD,EXV,AU,w2s,SX:()=>SX,SY:()=>SY,M3D,auToggle,auTick,UI,mapRef:()=>({map,WD,FD,tint,deco,TILES}),GLP,los,snapCam,EXS,EXD,EXI,exStart,exAssign,MT,ICO,icoCv,ICM,s3Cast,WFX,wfxAt,SK,CLS,HPC,pondTick,pondAt,PND,coachGo,saveGame,loadSave,EV4,ev4Fire,explode,spawnProj,FX2,fx2Spr,fx2Painter,fx2FireSpr,EV3,ev3Fire,ev3Use,ev3Give,ev3SL,wxSet,wxLightning,get HD3ON(){return HD3ON;},set HD3ON(v){HD3ON=v;},galShot,AREAS,evFire,evTick,HEV,stalkTick,mpAvatar,ultDrop,ultDropItem,hurtPlayer,deathBlast,GX_ZONES,isWall,los,nearestFloor,AI,ACT,spawnCurse,summonAt,raiseHostile,poisonP,detonate,bossSpecial,AREAS,THEMES,MT,makeMon,spawnAll,genLevel,CLS,SK,BASES,UNIQ,SETS,BUFF,mkItem,swapWeapons,newPlayer,itemHTML,eqGet,eqSet,showClassSelect,G,get P(){return P;},startGame,update,render,castSkill,genItem,recalc,enterFloor,killMon,hudHit,drinkPot,activate,findHoverMon,addAlly,raiseAlly,necroSkill,useShrine,spawnExtras,updateAllies,showWaypoints,corpseNear,SHRINES,scoutToggle,warpToBoss,scoutCount,guardCount,chaosCast,convertCorpse,convCount,confMon,NET,showTitle,netPack,netToSv,netFlush};
 })();
 </script>
 </body>
