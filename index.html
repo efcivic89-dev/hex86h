@@ -264,6 +264,7 @@ body.mob .card h2{font-size:20px;margin:0 0 6px}body.mob .card p{font-size:12px;
 body.mob .card .btns{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin:6px auto 4px;max-width:none}
 body.mob .card .btns .btn{min-height:38px;font-size:13px;padding:5px 8px}
 body.mob .card.wide .btns{grid-template-columns:repeat(4,1fr)}
+body.mob .auhint{display:none}body.mob .aumd{gap:6px!important}body.mob .aumd>div{padding:7px!important;gap:4px!important}body.mob .aumd b{font-size:14px!important}body.mob .aumd>div>div{font-size:11px!important}
 body.mob .setrow{margin:6px 0 2px}body.mob .setl{margin-bottom:3px;font-size:12px}body.mob .seg button{min-height:32px;font-size:13px}body.mob .seg[style*="repeat(5"]{grid-template-columns:repeat(10,1fr)!important}body.mob .setn{font-size:10px}
 body.mob .card .sub{font-size:11px;margin:4px 0 2px}body.mob .card .btn{min-height:36px}
 body.mob #isheet .isb{font-size:12px;height:112px}body.mob #isheet .isa .btn{min-height:34px}
@@ -1616,7 +1617,7 @@ let GFX=-1,HQ=false;try{if(!localStorage.getItem('fs_gfx_m2')){localStorage.setI
 function gfxLv(){if(GFX>=0)return GFX;try{return 2;}catch(e){return 2;}}
 let VZ=1.7;try{if(matchMedia('(pointer:coarse)').matches)VZ=.95;}catch(e){}try{const v=+localStorage.getItem('fs_vz3');if(v>=.7&&v<=2)VZ=v;}catch(e){}
 const monScale=(n,min)=>Math.max(min==null?1:min,Math.round(n*MONX/10*MONBOOST));
-function showPause(){showOverlay('<div class="card"><h2>一時停止</h2><div class="btns"><button class="btn" data-act="resume">ゲームに戻る</button><button class="btn ghost" data-act="help">操作方法</button><button class="btn ghost" data-act="gltog">描画: 切替</button><button class="btn ghost" data-act="m3dtog">3Dモデル表示: '+(M3D.on?'ON':'OFF')+'</button><button class="btn" data-act="bot_open" data-from="pause" style="border-color:#7fe0d0">🤖 ロボ仲間（R）</button>'+'<button class="btn" data-act="au_full" style="border-color:#9fe0ff">⚙ オート攻略（O）: '+(AU.on&&AU.mode==="full"?"ON":"OFF")+'</button><button class="btn ghost" data-act="au_fight">⚙ オート戦闘のみ: '+(AU.on&&AU.mode==="fight"?"ON":"OFF")+'</button>'+'<button class="btn ghost" data-act="au_pkopen">🎒 オートで拾う物の設定</button>'+mobBtnHtml()+(MP.playing?'<button class="btn ghost" data-act="n_mp_leave">協力プレイを終了してタイトルへ</button>':'')+'</div>'+monxHtml()+'</div>');}
+function showPause(){showOverlay('<div class="card"><h2>一時停止</h2><div class="btns"><button class="btn" data-act="resume">ゲームに戻る</button><button class="btn ghost" data-act="help">操作方法</button><button class="btn ghost" data-act="gltog">描画: 切替</button><button class="btn ghost" data-act="m3dtog">3Dモデル表示: '+(M3D.on?'ON':'OFF')+'</button><button class="btn" data-act="bot_open" data-from="pause" style="border-color:#7fe0d0">🤖 ロボ仲間（R）</button>'+'<button class="btn" data-act="au_menu" style="border-color:#9fe0ff">⚙ オート設定（O）: '+(AU.on?auModeName(AU.mode)+' ON':'OFF')+'</button>'+'<button class="btn ghost" data-act="au_pkopen">🎒 オートで拾う物の設定</button>'+mobBtnHtml()+(MP.playing?'<button class="btn ghost" data-act="n_mp_leave">協力プレイを終了してタイトルへ</button>':'')+'</div>'+monxHtml()+'</div>');}
 function monxHtml(){let b='';for(let i=1;i<=10;i++)b+=`<button class="${MONX===i?'on':''}" data-act="monx" data-n="${i}">${i}</button>`;
   return `<div class="setrow"><div class="setl"><span>敵の数</span><b>${MONX}倍</b></div><div class="seg" style="grid-template-columns:repeat(5,1fr)">${b}</div><div class="setn">※ 新しい階層から反映（ホードは即時）</div></div>`+vzHtml();}
 function vzHtml(){let b='';for(const v of [.75,.95,1.3,1.7,2])b+=`<button class="${Math.abs(VZ-v)<.01?'on':''}" data-act="vz" data-n="${v}">${v===.75?'最広':v===.95?'広い':v===2?'最小':v+'x'}</button>`;
@@ -2199,7 +2200,7 @@ function saveGame(){
 function loadSave(){try{const r=localStorage.getItem(SAVEKEY);return r?JSON.parse(r):null;}catch(e){return null;}}
 /* 画面操作から冒険を始めるとき：重い準備の間も「準備中」の案内を出し続ける */
 function startGameUI(sv,maxMode,cls){
-  let who='';try{botLoadLocal();const on=BOT.list.filter(r=>r.on);if(on.length&&!MP.playing)who='<p style="font-size:13px;color:#7fe8d8">🤖 '+on.map(r=>botEsc(r.name)).join('・')+' を呼び出しています…</p>';}catch(e){}
+  let who='';try{botLoadLocal();const on=BOT.list.filter(r=>r.on);if(on.length&&botOk())who='<p style="font-size:13px;color:#7fe8d8">🤖 '+on.map(r=>botEsc(r.name)).join('・')+' を呼び出しています…</p>';}catch(e){}
   G.prepOv=true;
   showOverlay('<div class="card" style="text-align:center;min-width:280px"><h2 style="margin-bottom:8px">冒険の準備をしています</h2><div style="font-size:30px;margin:6px 0;animation:spin 1.4s linear infinite;display:inline-block">⚙</div><p style="font-size:13px;color:#cdbf9f">マップを作り、仲間と敵を呼び出しています。<br>端末によって数秒〜数十秒かかります。そのままお待ちください。</p>'+who+'</div>');
   if(!document.getElementById('spincss')){const st=document.createElement('style');st.id='spincss';st.textContent='@keyframes spin{to{transform:rotate(360deg)}}';document.head.appendChild(st);}
@@ -4646,6 +4647,9 @@ function updateAllies(dt){
 /* ============ ロボ仲間（自動で戦う仲間） ============ */
 const BOT={list:[],down:[],fx:[],dirty:false,saveT:0,pulled:null,loaded:false,sel:null,slot:null,from:'title',view:null};
 const BOTKEY='fs_bots_v1',BOTPT=3,BOTROSTER=8,BOTDM=.9;
+function botOk(){return !MP.playing||MP.role==='host';}
+function botSlots(){if(!MP.playing)return BOTPT;const m=MP.meta;return m?Math.max(0,Math.min(BOTPT,(m.max|0)-Object.keys(MP.members).length)):0;}
+const mpBotId=id=>String(id).slice(0,4)==='bot_';
 const BOTNAMES={warrior:['ガイ','ロックス','ブラム','ダリウス','ハンス'],mage:['ルナ','メルヴィン','イゾルデ','セシル','オルガ'],healer:['マリア','エルダ','ソフィア','ルカ','ノア'],archer:['リリア','シルヴァ','ハヤト','フェン','アリス'],assassin:['カゲ','ヴェラ','レイヴン','ゼノ','ミスト'],necromancer:['モルド','ネクロ','ヘル','ヴァル','リッチ'],warlock:['ヴェルナ','アザゼル','モルガナ','ベリアル','リリス']};
 const BOTRNG={archer:9,mage:8.5,healer:7.5,necromancer:8,warlock:8.5};
 const BOTSTAT={warrior:{str:3,dex:1.5,vit:4,ene:.3},mage:{str:.2,dex:1,vit:2,ene:5},healer:{str:1,dex:1,vit:3,ene:4},archer:{str:1,dex:5,vit:2.5,ene:.3},assassin:{str:1.5,dex:4.5,vit:2.5,ene:.2},necromancer:{str:.2,dex:1,vit:2.5,ene:5},warlock:{str:.2,dex:1,vit:2.5,ene:5}};
@@ -4710,8 +4714,8 @@ function botSpawn(r,idx,o){
 }
 function botSpawnAll(){
   G.ally=G.ally.filter(a=>!a.bot);BOT.down=[];BOT.fx=[];
-  if(MP.playing||!P)return;botLoadLocal();
-  const act=BOT.list.filter(r=>r.on).slice(0,BOTPT),tg=Math.max(1,P.lvl-3);
+  if(!botOk()||!P)return;botLoadLocal();
+  const act=BOT.list.filter(r=>r.on).slice(0,botSlots()),tg=Math.max(1,P.lvl-3);
   act.forEach((r,i)=>{if(botCatchUp(r,tg))BOT.dirty=true;botSpawn(r,i);});
 }
 function botRefresh(a,full){
@@ -4731,7 +4735,7 @@ function botPlayerWants(it){
 }
 /* 同行ロボの装備を持ち物から自動更新（本人が使う上位装備は残す） */
 function botAutoGear(){
-  if(!P||P.dead||MP.playing||G.state!=='play')return;let n=0;const who=[];
+  if(!P||P.dead||!botOk()||G.state!=='play')return;let n=0;const who=[];
   for(const a of G.ally){if(!a.bot||a.dead)continue;const r=a.bot;let ch=0;const pf=(CLS[r.cls]||{}).pref||[];
     for(const s of BOTSLOTS){const sl=s==='ring2'?'ring':s;let best=-1,bs=r.eq[s]?itScore(r.eq[s]):0;
       P.bag.forEach((it,i)=>{if(!it||it.slot!==sl||!botCanEquip(r,it))return;if((sl==='weapon'||sl==='shield')&&pf.indexOf(itTyp(it))<0)return;
@@ -4743,12 +4747,12 @@ function botAutoGear(){
 function botTick(dt){
   if(G.state==='play'&&!G.paused&&G.t-(BOT.gearT||0)>4){BOT.gearT=G.t;try{botAutoGear();}catch(e){}}
   if(BOT.fx.length)for(let i=BOT.fx.length-1;i>=0;i--){if(G.t>=BOT.fx[i].t){const f=BOT.fx[i].fn;BOT.fx.splice(i,1);try{f();}catch(e){}}}
-  if(BOT.down.length&&!MP.playing&&P&&!P.dead)for(let i=BOT.down.length-1;i>=0;i--){const d=BOT.down[i];d.t-=dt;
+  if(BOT.down.length&&botOk()&&P&&!P.dead)for(let i=BOT.down.length-1;i>=0;i--){const d=BOT.down[i];d.t-=dt;
     if(d.t<=0){BOT.down.splice(i,1);const ix=BOT.list.indexOf(d.r);if(ix>=0&&d.r.on){const a=botSpawn(d.r,ix,{hpR:.6});if(a)msg(d.r.name+'が戦列に復帰した','#7fe0d0');}}}
   if(BOT.dirty&&G.t-BOT.saveT>8){BOT.saveT=G.t;botSave();}
 }
 function botXp(xp){
-  if(MP.playing||!BOT.list.length||!P)return;const cap=Math.min(LVMAX,P.lvl+3);
+  if(!botOk()||!BOT.list.length||!P)return;const cap=Math.min(LVMAX,P.lvl+3);
   const give=(r,k)=>{if(r.lvl>=cap){r.xp=0;return false;}r.xp+=xp*k;let up=0;
     while(r.xp>=xpNeed(r.lvl)&&r.lvl<cap){r.xp-=xpNeed(r.lvl);r.lvl++;r.statPts+=5;r.skillPts+=1;botAutoPoints(r);up++;}
     if(up)BOT.dirty=true;return up>0;};
@@ -4970,14 +4974,14 @@ function botCard(r,i,inGame){
 }
 function showBots(from){
   if(from)BOT.from=from;botLoadLocal();BOT.view='list';
-  const inGame=G.state==='play'&&!!P,solo=!MP.playing,on=BOT.list.filter(r=>r.on).length;
+  const inGame=G.state==='play'&&!!P,solo=!(MP.playing||MP.rid),on=BOT.list.filter(r=>r.on).length;
   const hire=Object.keys(CLS).map(c=>`<button class="btn" data-act="bot_hire" data-c="${c}" ${BOT.list.length>=BOTROSTER?'disabled':''} style="padding:6px 10px">${CLS[c].ic} ${CLS[c].n}</button>`).join('');
   const cards=BOT.list.map((r,i)=>botCard(r,i,inGame)).join('')||'<p style="font-size:13px;color:var(--dim)">まだ仲間がいません。上のボタンで職業を選んで雇いましょう。</p>';
-  const back=BOT.from==='lobby'?'n_mp_lobby':BOT.from==='pause'?'bot_pause':'back';
+  const back=BOT.from==='lobby'?'n_mp_lobby':BOT.from==='room'?'n_mp_room':BOT.from==='pause'?'bot_pause':'back';
   const go=BOT.from==='lobby'?`<button class="btn pri" data-act="${(NET.ok&&NET.user)?'n_list':(loadSave()?'cont':'new')}">ロボ仲間と冒険に出る</button>`:'';
   showOverlay(`<div class="card wide" style="background:rgba(14,10,7,.94);border:1px solid #5a4528;border-radius:12px;padding:16px 20px"><h2>🤖 ロボ仲間</h2>
-  <p style="font-size:12px;color:var(--dim)">誰もいなくても、職業を選んで仲間にできます。仲間は自動で戦い、状況に応じてスキルを使い（回復職は味方のHPを見て回復／敵が多ければ範囲攻撃）、能力値・スキルも自動で振り分けます。記録は保存され、いつでも呼べます。同行は最大${BOTPT}人・ソロ専用です。</p>
-  ${solo?'':'<p style="color:#ff9d7a;font-size:12px">協力プレイ中はロボ仲間は同行できません。</p>'}
+  <p style="font-size:12px;color:var(--dim)">誰もいなくても、職業を選んで仲間にできます。仲間は自動で戦い、状況に応じてスキルを使い（回復職は味方のHPを見て回復／敵が多ければ範囲攻撃）、能力値・スキルも自動で振り分けます。記録は保存され、いつでも呼べます。同行は最大${BOTPT}人です。</p>
+  ${solo?'':'<p style="color:#8fd0a0;font-size:12px">協力プレイでは、ルームの空き枠の数だけ同行します（人が入ると自動で抜けます）。</p>'}
   <div style="font-size:13px;color:#b08a4a;margin:8px 0 4px">仲間を雇う（${BOT.list.length}/${BOTROSTER}・同行中 ${on}/${BOTPT}）</div><div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px">${hire}</div>
   <div id="botlist" style="max-height:340px;overflow:auto">${cards}</div>
   ${inGame?'':'<p style="font-size:11px;color:var(--dim)">装備の変更は冒険中（ポーズ画面の「ロボ仲間」／Rキー）から、持ち物の装備を渡して行えます。</p>'}
@@ -5561,7 +5565,7 @@ function trRender(){
   if(!TR.open){
     let h=`<div class="trbox"><h3><span>🤝 トレード</span><span class="x" data-tr="close">×</span></h3>`;
     if(TR.invite)h+=`<div class="pl"><span><b style="color:#ffd070">${nEsc(trName(TR.invite))}</b> からトレードの申し込み</span><button class="btn pri" data-tr="to" data-u="${TR.invite}">受ける</button><button class="btn ghost" data-tr="decline">断る</button></div>`;
-    if(TR.pick){const ids=Object.keys(MP.rem);
+    if(TR.pick){const ids=Object.keys(MP.rem).filter(u=>!mpBotId(u));
       h+=`<div class="sub">トレードを申し込む相手</div>`+(ids.length?ids.map(u=>`<div class="pl"><span>${nEsc(trName(u))} Lv${MP.rem[u].l|0}</span><button class="btn" data-tr="to" data-u="${u}">申し込む</button></div>`).join(''):'<div class="sub">同じ部屋に仲間がいません</div>');}
     b.innerHTML=h+`</div>`;return;}
   const th=TR.all[TR.with],joined=!!(th&&th.w===MP.uid),theirAck=joined&&(th.ack|0)===TR.v&&TR.v>0,locked=TR.res>0;
@@ -11120,7 +11124,7 @@ function mainStat(it){
   return `付与 ${Object.keys(it.mods||{}).length}`;
 }
 function eqWhoBar(){
-  if(typeof BOT==='undefined'||MP.playing)return '';const L=BOT.list.filter(r=>r.on&&CLS[r.cls]);if(!L.length)return '';
+  if(typeof BOT==='undefined'||!botOk())return '';const L=BOT.list.filter(r=>r.on&&CLS[r.cls]);if(!L.length)return '';
   const b=(id,t)=>`<button class="eqb ${(UI.eqWho||'')===id?'on':''}" data-act="eqwho" data-id="${id}">${t}</button>`;
   return `<div class="eqtb who"><span class="msl">装備を見る:</span>${b('','🧙 自分')}${L.map(r=>b(r.id,CLS[r.cls].ic+' '+botEsc(r.name))).join('')}</div>`;
 }
@@ -11159,7 +11163,7 @@ function botInvHTML(r){
   <div class="eqR"><div class="sub">持ち物 <span class="pgs">${bagTabs(PG,'bagpg')}</span></div><div class="bag">${bag}</div><div class="dbon">${bon}</div></div>`;
 }
 function invHTML(){
-  if(UI.eqWho){const rb=(typeof BOT!=='undefined'&&!MP.playing)?BOT.list.find(x=>x.id===UI.eqWho&&x.on):null;if(rb)return botInvHTML(rb);UI.eqWho=null;}
+  if(UI.eqWho){const rb=(typeof BOT!=='undefined'&&botOk())?BOT.list.find(x=>x.id===UI.eqWho&&x.on):null;if(rb)return botInvHTML(rb);UI.eqWho=null;}
   const EQN={helm:'兜',amulet:'首飾り',weapon:'武器',armor:'鎧',shield:P.eq.weapon&&RANGED_T.indexOf(itTyp(P.eq.weapon))>=0?'矢筒':'盾',gloves:'手袋',belt:'帯',boots:'靴',ring:'指輪',ring2:'指輪',altw:'予備武器',alts:'予備盾'};
   const EQI={helm:'⛑',amulet:'📿',weapon:'🗡',armor:'🥋',shield:'🛡',gloves:'🧤',belt:'🎗',boots:'🥾',ring:'💍',ring2:'💍',altw:'⚔',alts:'🛡'};
   const row=(sl,side)=>{const it=eqGet(sl);
@@ -11246,7 +11250,12 @@ $('overlay').addEventListener('click',e=>{
   const el=e.target.closest('[data-act]');if(!el)return;audioInit();sfx('click');const a=el.dataset.act;
   if(a==='new'){showClassSelect(false);}
   else if(a==='maxmode'){showClassSelect(true);}
-  else if(a==='code_open'){showCodeEntry();}
+  else if(a==='code_open'){if(NET.ok&&NET.user&&NET.member===true)showMyCode();else showCodeEntry();}
+  else if(a==='code_enter'){showCodeEntry();}
+  else if(a==='code_back'){NET.form=false;showTitle();}
+  else if(a==='code_copy'){codeShare('copy');}
+  else if(a==='code_mail'){codeShare('mail');}
+  else if(a==='code_share'){codeShare('share');}
   else if(a==='code_ok'){applyCode();}
   else if(a==='cls'){mobAutoFull();startGameUI(null,el.dataset.m==='1',el.dataset.c);}
   else if(a==='cont'){mobAutoFull();const sv=loadSave();if(sv)startGameUI(sv);else showClassSelect(false);}
@@ -11267,6 +11276,9 @@ $('overlay').addEventListener('click',e=>{
   else if(a==='au_pkall'){Object.assign(AU.pk,{normal:0,magic:1,rare:1,unique:1,set:1,elite:1,class:1});auPkSave();showAuPick();}
   else if(a==='au_pkrare'){Object.assign(AU.pk,{normal:0,magic:0,rare:1,unique:1,set:1,elite:1,class:1});auPkSave();showAuPick();}
   else if(a==='au_pkback'){showPause();}
+  else if(a==='au_menu'){showAuMode();}
+  else if(a==='au_mode'){auToggle(true,el.dataset.m);G.paused=false;hideOverlay();}
+  else if(a==='au_off'){auToggle(false);G.paused=false;hideOverlay();}
   else if(a==='au_full'){auToggle(!(AU.on&&AU.mode==='full'),'full');G.paused=false;hideOverlay();}
   else if(a==='au_fight'){auToggle(!(AU.on&&AU.mode==='fight'),'fight');G.paused=false;hideOverlay();}
   else if(a==='revive'){revive();}
@@ -11311,8 +11323,8 @@ async function netOnUser(u){
   QST.defs=null;QST.tot={};QST.own={};QST.done={};QST.pend={};
   if(u){
     try{
-      NET.member=(await NET.db.ref('members/'+u.uid).once('value')).exists();
-      if(!NET.member){try{await NET.db.ref('members/'+u.uid).set('free');NET.member=true;}catch(e){NET.member=false;}}
+      {const msn=await NET.db.ref('members/'+u.uid).once('value');NET.member=msn.exists();NET.code=msn.exists()?msn.val():null;}
+      if(!NET.member){try{await NET.db.ref('members/'+u.uid).set('free');NET.member=true;NET.code='free';}catch(e){NET.member=false;}}
       if(NET.member){
         const ref=NET.db.ref('players/'+u.uid+'/profile');
         const p=(await ref.once('value')).val()||{};
@@ -11459,6 +11471,25 @@ async function netJoin(){
   NET.form=false;await netOnUser(NET.user);
 }
 /* 紹介コード入力（タイトル／ログイン後。「最強」で装備最強モード） */
+const CODE_URL='https://efcivic89-dev.github.io/hex86h/';
+function codeText(){const c=String(NET.code==null?'':NET.code);return '「墜ちた聖域」に招待します。\n登録の時に、次の紹介コードを入力してください。\n\n紹介コード： '+c+'\n\n'+CODE_URL;}
+function codeShare(kind){
+  const t=codeText();
+  if(kind==='mail'){location.href='mailto:?subject='+encodeURIComponent('「墜ちた聖域」への招待')+'&body='+encodeURIComponent(t);return;}
+  if(kind==='share'&&navigator.share){navigator.share({title:'墜ちた聖域への招待',text:t}).catch(()=>{});return;}
+  const done=()=>{const m=$('n_msg');if(m){m.textContent='コピーしました。メールやチャットに貼り付けて送れます';m.style.color='#8fd0a0';}};
+  const fb=()=>{try{const ta=document.createElement('textarea');ta.value=t;ta.style.cssText='position:fixed;left:-999px;top:0';document.body.appendChild(ta);ta.select();document.execCommand('copy');ta.remove();done();}catch(e){const m=$('n_msg');if(m)m.textContent='コピーできませんでした。上の文字を長押しでコピーしてください';}};
+  try{if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(t).then(done).catch(fb);else fb();}catch(e){fb();}
+}
+function showMyCode(){
+  NET.form=true;const c=String(NET.code==null?'':NET.code),has=!!c&&c!=='free';
+  showOverlay(`<div class="card"><h2>🎟 あなたの紹介コード</h2>`+(has?`<p style="font-size:12px">友だちが新しく登録する時に、このコードを入力すると同じサーバーで遊べます。</p>
+  <div style="font-size:26px;font-weight:700;letter-spacing:.12em;color:#ffe46e;background:rgba(0,0,0,.4);border:1px solid #5a4528;border-radius:8px;padding:10px;margin:8px 0;user-select:all;-webkit-user-select:all;word-break:break-all">${nEsc(c)}</div>
+  <p id="n_msg" class="nmsg"></p>
+  <div class="btns" style="flex-direction:row;flex-wrap:wrap;justify-content:center;gap:8px"><button class="btn pri" data-act="code_copy">📋 コピー</button><button class="btn" data-act="code_mail">✉ メールで送る</button>${navigator.share?'<button class="btn" data-act="code_share">📤 共有</button>':''}</div>`
+  :`<p style="font-size:12px">あなたは紹介コードなしで参加しています。紹介コードをお持ちの場合は、下から入力できます（入力後は、ここに表示されて共有できます）。</p><p id="n_msg" class="nmsg"></p>`)+
+  `<div class="btns" style="flex-direction:row;flex-wrap:wrap;justify-content:center;gap:8px"><button class="btn ghost" data-act="code_enter">別のコードを入力</button><button class="btn ghost" data-act="code_back">戻る</button></div></div>`);
+}
 function showCodeEntry(msgT){
   NET.form=true;
   showOverlay(`<div class="card"><h2>🎟 紹介コード</h2><p style="font-size:12px">紹介コードを入力してください。${NET.ok&&NET.user?'':'（コードの登録はログイン後に有効になります）'}</p>
@@ -11650,7 +11681,7 @@ window.addEventListener('keydown',e=>{
   if(k==='escape'){if(UI.left||UI.right){UI.left=null;UI.right=false;G.shopOpen=false;UI.dirty=true;hideTip();}else if(G.paused){G.paused=false;hideOverlay();}else{G.paused=true;showPause();}return;}
   if(G.paused)return;
   if(k==='i'){toggleRight();if(UI.right&&UI.left!=='shop')UI.left=null;}else if(k==='c'){toggleLeft('char');if(UI.left)UI.right=false;}else if(k==='s'){toggleLeft('skill');if(UI.left)UI.right=false;}else if(k==='f')mobFull();else if(k==='t')trToggle();
-  else if(k==='v')scoutToggle();else if(k==='b')warpToBoss();else if(k==='x')swapWeapons();else if(k==='q')drinkPot('hp');else if(k==='w')drinkPot('mp');else if(k==='o')auToggle(null,e.shiftKey?'fight':undefined);else if(k==='h'){G.paused=true;showHelp();}
+  else if(k==='v')scoutToggle();else if(k==='b')warpToBoss();else if(k==='x')swapWeapons();else if(k==='q')drinkPot('hp');else if(k==='w')drinkPot('mp');else if(k==='o'){if(e.shiftKey){G.paused=true;showAuMode();}else auToggle(null);}else if(k==='h'){G.paused=true;showHelp();}
   else if(k==='m'){muted=!muted;msg(muted?'音: オフ':'音: オン');}
   else if(k==='n'){MUS.on=!MUS.on;try{localStorage.setItem('fs_music',MUS.on?'1':'0');}catch(e){}msg(MUS.on?'音楽: オン (N)':'音楽: オフ (N)');}
   else if(k==='r'){G.paused=true;showBots('pause');}
@@ -13364,6 +13395,14 @@ function auPickOk(it){
 }
 const AUPK_LIST=[['gold','💰 ゴールド'],['pot','🧪 ポーション'],['normal','通常装備'],['magic','魔法装備'],['rare','レア装備'],['unique','ユニーク'],['set','セット'],['elite','エリート'],['class','職業専用']];
 const AUPK_GM=[0,10,50,100,300,1000];
+function showAuMode(){
+  const M=[['boss','🎯 ボス直攻略','寄り道せず、ボスのいる場所へ直行します。ボスを倒したら階段で次の階へ。道中は近くの敵だけ倒し、クエスト・宝箱・祠・探索はしません。レベルが低くても進みます。','最速で進めたい時'],
+    ['full','🗺 オール攻略','村長の依頼、宝箱、祠、洞窟、探索、ボス、階段まですべて自動で進めます。レベルが足りない時はレベル上げも行います。','放置してじっくり育てたい時'],
+    ['fight','⚔ オート戦闘のみ','自分では移動せず、近くの敵とだけ戦います。移動先は自分で操作してください。','狩り場で戦いたい時']];
+  const cards=M.map(m=>{const on=AU.on&&AU.mode===m[0],sel=AU.mode===m[0];
+    return '<div style="border:2px solid '+(on?'#7fe09a':sel?'#d1a74f':'#4a3a22')+';border-radius:10px;padding:10px;background:rgba(0,0,0,.3);display:flex;flex-direction:column;gap:6px;text-align:left"><b style="font-size:16px;color:#ffe9b0">'+m[1]+(on?' <span style="color:#7fe09a;font-size:12px">実行中</span>':'')+'</b><div style="font-size:12px;color:#cdbf9f;flex:1">'+m[2]+'</div><div style="font-size:11px;color:#8a8070">'+m[3]+'</div><button class="btn'+(on?' ghost':'')+'" data-act="au_mode" data-m="'+m[0]+'" style="padding:8px 6px">'+(on?'このモードで続ける':'この設定で開始')+'</button></div>';}).join('');
+  showOverlay('<div class="card wide" style="max-width:820px;max-height:92vh;overflow:auto"><h2>⚙ オートモード設定</h2><div class="auhint" style="font-size:12px;color:#cdbf9f;margin-bottom:8px">モードを選んで開始します。Oキーで ON/OFF（最後に選んだモード）、Shift+Oでこの画面を開きます。協力プレイの参加者は、どのモードでもリーダーを追尾して戦います。</div><div class="aumd" style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">'+cards+'</div><div class="btns" style="flex-direction:row;flex-wrap:wrap;justify-content:center;gap:8px;margin:12px 0 4px">'+(AU.on?'<button class="btn" data-act="au_off" style="border-color:#ff9d7a">オートを停止</button>':'')+'<button class="btn ghost" data-act="au_pkopen">🎒 拾う物・自動整理の設定</button><button class="btn ghost" data-act="au_pkback">戻る</button></div></div>');
+}
 function showAuPick(){
   const k=AU.pk;const tg=(id,nm)=>'<button class="btn'+(k[id]!==0?'':' ghost')+'" data-act="au_tg" data-k="'+id+'" style="text-align:left">'+(k[id]!==0?'☑ ':'☐ ')+nm+'</button>';
   const rows=AUPK_LIST.map(([id,nm])=>{const c=RC[id]||'#e8e2d2';return '<button class="btn'+(k[id]?'':' ghost')+'" data-act="au_pk" data-k="'+id+'" style="text-align:left;'+(k[id]?'border-color:'+c:'')+'"><span style="color:'+c+'">'+(k[id]?'☑ ':'☐ ')+nm+'</span></button>';}).join('');
@@ -13372,10 +13411,11 @@ function showAuPick(){
 const AU_EL={fire:'fire',cold:'cold',light:'light',pois:'pois',psn:'pois',arcane:'arc',shadow:'arc',phys:'phys'};
 function auToggle(on,mode){
   AU.on=on==null?!AU.on:!!on;if(mode){AU.mode=mode;try{localStorage.setItem('fs_auto_mode',mode);}catch(e){}}
-  if(AU.on){AU.dest=null;AU.dn='';AU.st=0;msg(MP.playing&&MP.role==='guest'?'オート随行 ON ― リーダーを追いかけ、近くの敵を自動で攻撃します（Oで解除）':AU.mode==='full'?'オート攻略 ON ― 戦闘・クエスト・ダンジョンを自動で進めます（Oで解除）':'オート戦闘 ON ― 近くの敵と自動で戦います（Oで解除）','#9fe0ff');}
+  if(AU.on){AU.dest=null;AU.dn='';AU.st=0;msg(MP.playing&&MP.role==='guest'?'オート随行 ON ― リーダーを追いかけ、近くの敵を自動で攻撃します（Oで解除）':AU.mode==='boss'?'ボス直攻略 ON ― 寄り道せずボスへ直行し、倒したら次の階へ進みます（Oで解除）':AU.mode==='full'?'オール攻略 ON ― 戦闘・クエスト・宝箱・ダンジョンを自動で進めます（Oで解除）':'オート戦闘 ON ― 近くの敵と自動で戦います（Oで解除）','#9fe0ff');}
   else{msg('オート OFF','#9fe0ff');P.target=null;AU.note='';}
   UI.dirty=true;
 }
+function auModeName(m){return m==='boss'?'ボス直攻略':m==='fight'?'オート戦闘のみ':'オール攻略';}
 function auNote(s){if(AU.note!==s){AU.note=s;AU.noteT=G.t;}}
 /* ---- 経路 ---- */
 function auGoto(x,y,name){
@@ -13523,7 +13563,7 @@ function auFrontier(){
 function auSkipOk(o){return !(o&&o.auSkip>G.t);}
 function auFarRep(e){return !!(e&&G.bossDead&&G.stairs&&dst(P.x,P.y,e.x,e.y)>60&&dst(P.x,P.y,e.x,e.y)>dst(P.x,P.y,G.stairs.x,G.stairs.y)*2);}
 function auObjective(){
-  const O=(x,y,name,fn,o)=>({x,y,name,fn,o});
+  const O=(x,y,name,fn,o)=>({x,y,name,fn,o}),BS=AU.mode==='boss';
   /* 拾う */
   {let bi=null,bd=7;for(const it of G.items){if(!auSkipOk(it))continue;if(!auPickOk(it))continue;if(it.kind==='item'&&P.bag.indexOf(null)<0)continue;if(it.kind==='pot'&&(P.pot[it.type]||0)>=POTMAX)continue;const d=dst(P.x,P.y,it.x,it.y);if(d<bd&&vis[Math.floor(it.y)*MW+Math.floor(it.x)]){bd=d;bi=it;}}
     if(bi)return O(bi.x,bi.y,'拾う',()=>{pickUp(bi);},bi);}
@@ -13535,28 +13575,28 @@ function auObjective(){
   const L=vqGet(),q=id=>L.find(x=>x.id===id),elder=auNpc('elder'),healer=auNpc('healer'),hpR=P.hp/P.st.maxhp;
   if(healer&&hpR<.45&&auSkipOk(healer)&&dst(P.x,P.y,healer.x,healer.y)<26)return O(healer.x,healer.y,'癒し手のところへ',()=>{P.hp=P.st.maxhp;P.mp=P.st.maxmp;P.pois=null;sfx('pot');msg('傷が癒えた','#7aff9a');pulse(P.x,P.y,'120,255,160',230,.5,.9);},healer);
   if(G.merchant&&!AU.bought&&auSkipOk(G.merchant)&&((P.pot.hp||0)<3||(P.pot.mp||0)<2)&&P.gold>potPrice('hp')*3&&dst(P.x,P.y,G.merchant.x,G.merchant.y)<30)return O(G.merchant.x,G.merchant.y,'商人のところへ',()=>{auBuy();AU.bought=1;},G.merchant);
-  if(elder&&auSkipOk(elder)&&L.some(x=>x.st===0||x.st===2)){const rep=L.some(x=>x.st===2),far=auFarRep(elder);
+  if(!BS&&elder&&auSkipOk(elder)&&L.some(x=>x.st===0||x.st===2)){const rep=L.some(x=>x.st===2),far=auFarRep(elder);
     if(rep&&far&&AU.farMsg!==G.floor+':'+G.diff){AU.farMsg=G.floor+':'+G.diff;msg('村長の報告先が遠いので、先に階段へ進みます（報酬は戻って受け取れます）','#ffd890');}
     if((rep&&!far)||(!rep&&dst(P.x,P.y,elder.x,elder.y)<40))return O(elder.x,elder.y,rep?'村長に報告':'村長に依頼を聞く',()=>auElder(),elder);}
-  const qc=q('chest');if(qc&&qc.st===1){let bo=null,bd=1e9;for(const o of G.objs){if(o.kind!=='chest'||o.open||!auSkipOk(o))continue;const d=dst(P.x,P.y,o.x,o.y);if(d<bd){bd=d;bo=o;}}
+  const qc=BS?null:q('chest');if(qc&&qc.st===1){let bo=null,bd=1e9;for(const o of G.objs){if(o.kind!=='chest'||o.open||!auSkipOk(o))continue;const d=dst(P.x,P.y,o.x,o.y);if(d<bd){bd=d;bo=o;}}
     if(bo)return O(bo.x,bo.y,'宝箱を探す',()=>activate(bo),bo);}
-  const qh=q('hid');if(qh&&qh.st===1){const c=caveObj();if(c&&auSkipOk(c))return O(c.x,c.y,'洞窟へ向かう',()=>activate(c),c);}
-  {let bo=null,bd=9;for(const o of G.objs){if(!auSkipOk(o))continue;if((o.kind==='chest'&&!o.open)||(o.kind==='shrine'&&!o.used)){const d=dst(P.x,P.y,o.x,o.y);if(d<bd&&expl[Math.floor(o.y)*MW+Math.floor(o.x)]){bd=d;bo=o;}}}
+  const qh=BS?null:q('hid');if(qh&&qh.st===1){const c=caveObj();if(c&&auSkipOk(c))return O(c.x,c.y,'洞窟へ向かう',()=>activate(c),c);}
+  if(!BS){let bo=null,bd=9;for(const o of G.objs){if(!auSkipOk(o))continue;if((o.kind==='chest'&&!o.open)||(o.kind==='shrine'&&!o.used)){const d=dst(P.x,P.y,o.x,o.y);if(d<bd&&expl[Math.floor(o.y)*MW+Math.floor(o.x)]){bd=d;bo=o;}}}
     if(bo)return O(bo.x,bo.y,bo.kind==='chest'?'宝箱':'祠',()=>activate(bo),bo);}
   if(!G.bossDead){
-    const b=G.mon.find(m=>!m.dead&&m.boss),qk=q('kill'),lvOk=P.lvl>=mlvlOf()-1;
+    const b=G.mon.find(m=>!m.dead&&m.boss),qk=q('kill'),lvOk=BS||P.lvl>=mlvlOf()-1;
     if(b&&(lvOk||!qk||qk.st!==1))return O(b.x,b.y,'ボスのもとへ：'+(b.name||AR().boss.n),null,b);
     if(!lvOk||(qk&&qk.st===1&&qk.have<qk.need)){const f=auFrontier();if(f)return O(f[0],f[1],'探索（レベル上げ）');}
     if(bossRoom)return O(bossRoom.cx,bossRoom.cy,'最奥へ向かう');
   }
-  if(G.stairs&&!(elder&&L.some(x=>x.st===2)&&!auFarRep(elder)))return O(G.stairs.x,G.stairs.y,'次の階層へ',()=>{if(G.floor===FLOORS){auNote('制覇！');AU.on=false;}else activate(G.stairs);});
+  if(G.stairs&&!(!BS&&elder&&L.some(x=>x.st===2)&&!auFarRep(elder)))return O(G.stairs.x,G.stairs.y,'次の階層へ',()=>{if(G.floor===FLOORS){auNote('制覇！');AU.on=false;}else activate(G.stairs);});
   const f=auFrontier();if(f)return O(f[0],f[1],'探索');
   return null;
 }
 /* ---- 本体 ---- */
 function auTick(dt){
   if(!AU.on||G.state!=='play'||!P||P.dead||G.paused||G.loading)return;
-  if(MP.playing&&MP.role==='guest'&&AU.mode==='full'){AU.mode='fight';}
+  if(MP.playing&&MP.role==='guest'&&AU.mode!=='fight'){AU.mode='fight';}
   if(G.floor!==AU.prevFloor||G.cave!==AU.prevCave){AU.prevFloor=G.floor;AU.prevCave=G.cave;AU.dest=null;AU.st=0;AU.bought=0;AU.sx=P.x;AU.sy=P.y;AU.sT=G.t;}
   AU.t-=dt;if(AU.t>0)return;AU.t=.12;
   if(UI.left==='shop'||G.shopOpen){UI.left=null;UI.right=false;G.shopOpen=false;UI.dirty=true;}
@@ -13564,7 +13604,7 @@ function auTick(dt){
   try{auSpend();}catch(e){}
   if(G.t-(AU.tdT||0)>6){AU.tdT=G.t;try{if(AU.pk.equip!==0)autoBest(true);if(AU.pk.sell!==0||AU.pk.stash!==0)bagTidy({quiet:true,sell:AU.pk.sell!==0,stash:AU.pk.stash!==0});}catch(e){}}
   /* 予兆回避 */
-  const ob=AU.mode==='full'?auObjective():null;
+  const ob=AU.mode!=='fight'?auObjective():null;
   const dg=auDanger();
   if(dg&&P.freeze<=0&&(!ob||dg.p.dm>P.st.maxhp*.12||ob.o&&ob.o.boss)){const p=dg.p;let ax=P.x-dg.x,ay=P.y-dg.y;const L=Math.hypot(ax,ay);
     if(p.sh==='line'||p.sh==='cone'){ax=-Math.sin(p.a);ay=Math.cos(p.a);const q=(P.x-p.x)*ax+(P.y-p.y)*ay;if(q<0){ax=-ax;ay=-ay;}}
@@ -13573,7 +13613,7 @@ function auTick(dt){
     if(f){P.target={t:'move',x:f[0],y:f[1]};auNote('回避！');AU.avoid=.5;return;}}
   if(AU.avoid>0){AU.avoid-=.12;if(P.target&&P.target.t==='move')return;}
   const bossOb=ob&&ob.o&&ob.o.boss,hpR0=P.hp/P.st.maxhp;
-  let en=auEnemies(ob&&!bossOb?3.8:(AU.mode==='full'?8:13));
+  let en=auEnemies(ob&&!bossOb?3.8:(AU.mode!=='fight'?8:13));
   if(ob&&!bossOb&&en.length&&en.length<3&&hpR0>.55&&en[0][0]>1.9)en=[];
   const fol=MP.playing&&MP.role==='guest',LR=fol?auLeader():null;
   if(fol&&LR){const dl=dst(P.x,P.y,LR.x,LR.y);if(dl>16||(!en.length&&dl>(AU.chs?2.4:4.5))){AU.chs=1;auGoto(LR.x,LR.y);auNote('リーダーを追尾');return;}if(AU.chs){AU.chs=0;if(P.target&&P.target.t==='move')P.target=null;}}
@@ -13589,7 +13629,7 @@ function auTick(dt){
   }
   AU.tgt=null;
   if(fol){auNote(LR?'リーダーに随行':'リーダー待ち');return;}
-  if(AU.mode!=='full')return;
+  if(AU.mode==='fight')return;
   if(!ob){auNote('待機');return;}
   /* 目的地へ */
   const d=dst(P.x,P.y,ob.x,ob.y);
@@ -13603,7 +13643,7 @@ function auTick(dt){
 function auDrawHud(){
   if(!AU.on||G.state!=='play')return;
   const x=W/2,y=MOB.on?30:18;ctx.save();ctx.setTransform(DPR,0,0,DPR,0,0);ctx.textAlign='center';ctx.font='700 12px '+FONT;
-  const t=(MP.playing&&MP.role==='guest'?'⚙ オート随行（リーダーに任せる）':AU.mode==='full'?'⚙ オート攻略':'⚙ オート戦闘')+(AU.note?'　'+AU.note:'');const w=ctx.measureText(t).width+22;
+  const t=(MP.playing&&MP.role==='guest'?'⚙ オート随行（リーダーに任せる）':'⚙ '+auModeName(AU.mode))+(AU.note?'　'+AU.note:'');const w=ctx.measureText(t).width+22;
   ctx.fillStyle='rgba(0,0,0,.55)';ctx.fillRect(x-w/2,y-11,w,20);ctx.strokeStyle='rgba(159,224,255,.7)';ctx.lineWidth=1;ctx.strokeRect(x-w/2+.5,y-10.5,w-1,19);
   ctx.fillStyle='#9fe0ff';ctx.fillText(t,x,y+4);ctx.restore();
 }
@@ -13781,15 +13821,18 @@ async function mpJoin(rid){
   }catch(e){showLobby('参加できませんでした（満員か、ルームが閉じられた可能性があります）');}
 }
 /* --- ルーム画面 --- */
-function mpEnter(rid,role){
-  mpOffAll();const db=NET.db,uid=NET.user.uid;
-  MP.rid=rid;MP.role=role;MP.uid=uid;MP.meta=null;MP.members={};MP.reqs={};MP.chat=[];MP.rem={};MP.joined=(role==='host');MP.msg='';
+function mpRoomShell(){
   showOverlay(`<div class="card wide"><h2 id="mpr_t">ルーム</h2><div id="mpr_info" style="font-size:13px"></div>
   <div id="mpr_req"></div><div id="mpr_mem"></div>
   <div id="mpr_chat" style="height:110px;overflow:auto;text-align:left;font-size:12px;background:rgba(0,0,0,.35);padding:6px;border-radius:4px;margin:6px 0"></div>
   <input class="nin" id="mp_say" maxlength="100" placeholder="メッセージを入力してEnter">
   <div class="btns" id="mpr_btn"></div></div>`);
   const el=document.getElementById('mp_say');el.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();mpSay();}});
+}
+function mpEnter(rid,role){
+  mpOffAll();const db=NET.db,uid=NET.user.uid;
+  MP.rid=rid;MP.role=role;MP.uid=uid;MP.meta=null;MP.members={};MP.reqs={};MP.chat=[];MP.rem={};MP.joined=(role==='host');MP.msg='';
+  mpRoomShell();
   mpOn(db.ref('rooms/'+rid+'/meta'),'value',s=>{
     const v=s.val();if(!v){mpEnded(role==='host'?'':'ホストがルームを閉じました');return;}
     const prev=MP.meta;MP.meta=v;
@@ -13829,9 +13872,10 @@ function mpRenderRoom(){
   {const mk=(id)=>{const r=MP.members[id],me=id===uid;let img;
       if(me&&NET.chars&&NET.chars[MP.charId]){const c=NET.chars[MP.charId];img=mpAvatar(r.cls,mpEqOf(c),'s'+(c.updatedAt||0)+'|'+(c.level|0));}else img=mpAvatar(r.cls,null,'');
       return `<div class="mpc${me?' me':''}">${me?'<span class="tag">あなた</span>':''}<img class="av" src="${img}" alt=""><div class="mn">${id===m.host?'👑 ':''}${nEsc(r.name)}</div><div class="mc">${nEsc(mpCls(r.cls))} Lv${r.lvl|0}</div>${host&&!me?`<button class="kk" data-act="n_mp_kick" data-id="${nEsc(id)}">退室させる</button>`:''}</div>`;};
-    let h=ids.map(mk).join('');for(let k=ids.length;k<(m.max|0);k++)h+='<div class="mpc empty"><div class="av0">＋</div><div class="mc">空き</div></div>';
+    let h=ids.map(mk).join('');let bots=[];if(host){try{botLoadLocal();}catch(e){}bots=BOT.list.filter(r=>r.on&&CLS[r.cls]).slice(0,Math.max(0,Math.min(BOTPT,(m.max|0)-ids.length))).map(r=>({n:r.name,c:r.cls,l:r.lvl}));const sg=JSON.stringify(bots);if(sg!==MP.botSig){MP.botSig=sg;NET.db.ref('rooms/'+MP.rid+'/meta/bots').set(bots.length?bots:null).catch(()=>{});}}else bots=Array.isArray(m.bots)?m.bots:[];
+    for(let k=ids.length;k<(m.max|0);k++){const bt=bots[k-ids.length];h+=bt?`<div class="mpc"><span class="tag" style="background:#1d5a52">ロボ</span><img class="av" src="${mpAvatar(bt.c,null,'')}" alt=""><div class="mn">🤖 ${nEsc(bt.n)}</div><div class="mc">${nEsc(mpCls(bt.c))} Lv${bt.l|0}</div></div>`:'<div class="mpc empty"><div class="av0">＋</div><div class="mc">空き</div></div>';}
     document.getElementById('mpr_mem').innerHTML='<div class="mpgrid">'+h+'</div>';}
-  document.getElementById('mpr_btn').innerHTML=(host?`<button class="btn" data-act="n_mp_start">${m.state==='playing'?'ゲームに戻る':'ゲーム開始'}</button>`:(m.state==='playing'&&MP.joined?'<button class="btn" data-act="n_mp_start">ゲームに参加</button>':''))+'<button class="btn ghost" data-act="n_mp_leave">退室</button>';
+  document.getElementById('mpr_btn').innerHTML=(host?`<button class="btn" data-act="n_mp_start">${m.state==='playing'?'ゲームに戻る':'ゲーム開始'}</button><button class="btn ghost" data-act="n_mp_bots" style="border-color:#7fe0d0">🤖 ロボ編成（空き枠に同行）</button>`:(m.state==='playing'&&MP.joined?'<button class="btn" data-act="n_mp_start">ゲームに参加</button>':''))+'<button class="btn ghost" data-act="n_mp_leave">退室</button>';
   mpRenderChat();
 }
 function mpRenderChat(){const el=document.getElementById('mpr_chat');if(!el)return;el.innerHTML=MP.chat.map(c=>`<div><b style="color:#8fd0a0">${nEsc(c.n)}</b>: ${nEsc(c.t)}</div>`).join('');el.scrollTop=el.scrollHeight;}
@@ -13883,7 +13927,7 @@ function mpOnFloor(){
 }
 /* --- 位置同期 --- */
 function mpPl(uid,v){
-  if(!v||uid===MP.uid)return;let R=MP.rem[uid];
+  if(!v||uid===MP.uid)return;if(MP.role==='host'&&mpBotId(uid))return;let R=MP.rem[uid];
   if(!R){R=MP.rem[uid]={x:v.x,y:v.y,face:v.f||0,anim:0,moving:false,swing:0,k:v.k|0,eq:{},eqs:''};}
   R.tx=v.x;R.ty=v.y;R.tf=v.f||0;R.moving=!!v.m;R.hp=v.h;R.mh=v.mh;R.fl=v.fl;R.d=!!v.d;R.l=v.l;R.c=v.c;R.n=v.n;R.swk=v.sk||'m';R.swc=v.sc||'255,240,200';if(v.ss!=null){R.ss=v.ss;R.lr=v.lr||'';}
   if((v.k|0)!==R.k){R.k=v.k|0;R.swing=.28;}
@@ -13894,6 +13938,23 @@ function mpPush(){
   const o={x:+P.x.toFixed(2),y:+P.y.toFixed(2),f:+(P.face||0).toFixed(2),m:P.moving?1:0,h:Math.round(P.hp),mh:P.st.maxhp|0,fl:G.floor,d:P.dead?1:0,l:P.lvl,c:P.cls,n:(NET.dn||'冒険者').slice(0,16),k:MP.k,sk:P.swk||'m',sc:P.swc||'255,240,200'};
   if(G.t-MP.eqAt>3){MP.eqAt=G.t;const e={};for(const s in P.eq)if(P.eq[s])e[s]=[P.eq[s].base,P.eq[s].rar];const sg=JSON.stringify(e);o.e=sg;o.ss=Object.keys(P.skills||{}).filter(k=>P.skills[k]>0).sort((a,b)=>P.skills[b]-P.skills[a]).slice(0,8).map(k=>k+':'+P.skills[k]).join(',');o.lr=(P.left||'')+','+(P.right||'');}
   NET.db.ref('rooms/'+MP.rid+'/pl/'+MP.uid).update(o).catch(()=>{});
+}
+function mpBotSync(){
+  if(!MP.playing||MP.role!=='host'||!P||G.loading)return;
+  const want=BOT.list.filter(r=>r.on&&CLS[r.cls]).slice(0,botSlots());
+  for(const a of G.ally){if(a.bot&&!a.dead&&want.indexOf(a.bot)<0)botDown(a,true);}
+  BOT.down=BOT.down.filter(d=>want.indexOf(d.r)>=0);
+  for(const r of want){if(botFind(r)||BOT.down.some(d=>d.r===r))continue;botCatchUp(r,Math.max(1,P.lvl-3));botSpawn(r,BOT.list.indexOf(r));}
+}
+function mpBotPush(){
+  if(!MP.rid)return;const ups={},alive={};MP.botIds=MP.botIds||{};
+  for(const a of G.ally){if(!a.bot)continue;const id='bot_'+a.bot.id;alive[id]=1;
+    if(a._pk===undefined)a._pk=0;if((a.swing||0)>.2&&!a._pso){a._pso=1;a._pk++;}else if((a.swing||0)<=.05)a._pso=0;
+    const o={x:+a.x.toFixed(2),y:+a.y.toFixed(2),f:+(a.face||0).toFixed(2),m:a.moving?1:0,h:Math.max(0,Math.round(a.hp)),mh:a.maxhp|0,fl:G.floor,d:a.dead?1:0,l:a.bot.lvl,c:a.bot.cls,n:'🤖'+a.bot.name,k:a._pk};
+    if(G.t-(a._eqT||0)>3){a._eqT=G.t;const e={};for(const s of BOTSLOTS){const it=a.bot.eq[s];if(it)e[s]=[it.base,it.rar];}o.e=JSON.stringify(e);}
+    ups[id]=o;}
+  for(const id in MP.botIds)if(!alive[id])ups[id]=null;MP.botIds=alive;
+  if(Object.keys(ups).length)NET.db.ref('rooms/'+MP.rid+'/pl').update(ups).catch(()=>{});
 }
 function mpMkAlly(uid,R){
   const a=makeMon('skeleton',R.x,R.y,1,{noVar:1});a.ally=true;a.remote=true;a.uid=uid;a.maxhp=a.hp=1e9;a.aggro=true;a.noLoot=1;a.xp=0;a.name=R.n||'';a.full=true;a.exp=0;return a;
@@ -13906,9 +13967,11 @@ function mpTick(dt){
   for(const id in MP.rem){const R=MP.rem[id];if(R.tx==null)continue;const k=Math.min(1,dt*12);R.x+=(R.tx-R.x)*k;R.y+=(R.ty-R.y)*k;
     let df=R.tf-R.face;while(df>3.1416)df-=6.2832;while(df<-3.1416)df+=6.2832;R.face+=df*k;if(R.moving)R.anim+=dt;R.swing=Math.max(0,R.swing-dt);}
   T.hud-=dt;if(T.hud<=0){T.hud=.5;mpHud();}
-  if(P.aura==='auraheal'&&!P.dead){const l=skl('auraheal');if(l>0){const r=(1+.6*l)*(1+(P.st.healP||0)/100)*dt;for(const id in MP.rem){const R=MP.rem[id];if(R.fl===G.floor&&!R.d&&R.tx!=null&&dst(R.x,R.y,P.x,P.y)<7)MP.healq[id]=(MP.healq[id]||0)+r;}}}
+  if(P.aura==='auraheal'&&!P.dead){const l=skl('auraheal');if(l>0){const r=(1+.6*l)*(1+(P.st.healP||0)/100)*dt;for(const id in MP.rem){if(mpBotId(id))continue;const R=MP.rem[id];if(R.fl===G.floor&&!R.d&&R.tx!=null&&dst(R.x,R.y,P.x,P.y)<7)MP.healq[id]=(MP.healq[id]||0)+r;}}}
   T.heal-=dt;if(T.heal<=0){T.heal=.5;mpFlushHeal();}
   if(host){
+    T.bs=(T.bs||0)-dt;if(T.bs<=0){T.bs=1.5;try{mpBotSync();}catch(e){}}
+    T.bp=(T.bp||0)-dt;if(T.bp<=0){T.bp=.2;try{mpBotPush();}catch(e){}}
     for(const id in MP.rem){const R=MP.rem[id];let a=MP.al[id];const here=R.fl===G.floor&&!R.d&&R.tx!=null;
       if(here&&!a){a=MP.al[id]=mpMkAlly(id,R);G.ally.push(a);}
       if(a){if(!here){a.dead=true;delete MP.al[id];}else{a.x=R.x;a.y=R.y;a.hp=a.maxhp=1e9;a.dead=false;}}}
@@ -13965,7 +14028,7 @@ function mpWithTarget(a,fn){
 }
 function mpHealParty(a,range){
   if(!MP.playing||!(a>0))return;
-  for(const id in MP.rem){const R=MP.rem[id];if(R.fl!==G.floor||R.d||R.tx==null||dst(R.x,R.y,P.x,P.y)>range)continue;
+  for(const id in MP.rem){if(mpBotId(id))continue;const R=MP.rem[id];if(R.fl!==G.floor||R.d||R.tx==null||dst(R.x,R.y,P.x,P.y)>range)continue;
     MP.healq[id]=(MP.healq[id]||0)+a;pulse(R.x,R.y,'140,255,170',200,.4,.8);ftext(R.x,R.y-.4,'+'+Math.round(a),'#7dff9a',14);}
 }
 function mpFlushHeal(){
@@ -14023,6 +14086,8 @@ function mpAct(a,el){
   else if(a==='n_mp_make')mpCreate();
   else if(a==='n_mp_join')mpJoin(el.dataset.id);
   else if(a==='n_mp_start')mpStart();
+  else if(a==='n_mp_bots'){showBots('room');}
+  else if(a==='n_mp_room'){mpRoomShell();mpRenderRoom();}
   else if(a==='n_mp_leave')mpLeave();
   else if(a==='n_mp_ok'){const id=el.dataset.id,r=MP.reqs[id];if(r){const n=Object.keys(MP.members).length;if(n>=MP.meta.max){return;}
     NET.db.ref().update({['rooms/'+MP.rid+'/members/'+id]:{name:r.name,cls:r.cls,lvl:r.lvl},['rooms/'+MP.rid+'/requests/'+id]:null}).catch(()=>{});}}
