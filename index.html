@@ -11324,7 +11324,7 @@ async function netOnUser(u){
   if(u){
     try{
       {const msn=await NET.db.ref('members/'+u.uid).once('value');NET.member=msn.exists();NET.code=msn.exists()?msn.val():null;}
-      if(!NET.member){try{await NET.db.ref('members/'+u.uid).set('free');NET.member=true;NET.code='free';}catch(e){NET.member=false;}}
+      if(!NET.member){for(const cd of [INV_DEF,'free']){try{await NET.db.ref('members/'+u.uid).set(cd);NET.member=true;NET.code=cd;break;}catch(e){NET.member=false;}}}
       if(NET.member){
         const ref=NET.db.ref('players/'+u.uid+'/profile');
         const p=(await ref.once('value')).val()||{};
@@ -11458,7 +11458,7 @@ async function showBoard(){
 function showInvite(msgT){
   NET.form=true;
   showOverlay(`<div class="card"><h2>紹介コード（任意）</h2><p style="font-size:12px">紹介コードをお持ちの方は入力してください。空欄のまま「参加する」でも遊べます（コードは後からタイトルの「🎟 紹介コード」で入力できます）。</p>
-  <input class="nin" id="n_code" maxlength="40" placeholder="紹介コード（空欄でもOK）" autocomplete="off">
+  <input class="nin" id="n_code" maxlength="40" placeholder="紹介コード（空欄でもOK）" value="${INV_DEF}" autocomplete="off">
   <p id="n_msg" class="nmsg">${nEsc(msgT||'')}</p>
   <div class="btns"><button class="btn pri" data-act="n_join">参加する</button><button class="btn ghost" data-act="n_out">ログアウト</button></div></div>`);
 }
@@ -11471,6 +11471,7 @@ async function netJoin(){
   NET.form=false;await netOnUser(NET.user);
 }
 /* 紹介コード入力（タイトル／ログイン後。「最強」で装備最強モード） */
+const INV_DEF='FS-2UU6HHGJ';
 const CODE_URL='https://efcivic89-dev.github.io/hex86h/';
 function codeText(){const c=String(NET.code==null?'':NET.code);return '「墜ちた聖域」に招待します。\n登録の時に、次の紹介コードを入力してください。\n\n紹介コード： '+c+'\n\n'+CODE_URL;}
 function codeShare(kind){
@@ -11493,7 +11494,7 @@ function showMyCode(){
 function showCodeEntry(msgT){
   NET.form=true;
   showOverlay(`<div class="card"><h2>🎟 紹介コード</h2><p style="font-size:12px">紹介コードを入力してください。${NET.ok&&NET.user?'':'（コードの登録はログイン後に有効になります）'}</p>
-  <input class="nin" id="n_code" maxlength="40" placeholder="紹介コード" autocomplete="off">
+  <input class="nin" id="n_code" maxlength="40" placeholder="紹介コード" value="${INV_DEF}" autocomplete="off">
   <p id="n_msg" class="nmsg">${nEsc(msgT||'')}</p>
   <div class="btns"><button class="btn pri" data-act="code_ok">決定</button><button class="btn ghost" data-act="back">戻る</button></div></div>`);
   setTimeout(()=>{const e=$('n_code');if(e)e.focus();},50);
@@ -14306,7 +14307,7 @@ function galShot(kind,spec,cw,ch,scl,face,eq,cls){
   }finally{ctx=sv.ctx;P=sv.P;W=sv.W;H=sv.H;cam.x=sv.cx;cam.y=sv.cy;G.t=sv.t;}
   return c.toDataURL();
 }
-window.__dbg={mpEnter,mpStart,TR,MP,NET,trRender,mpTick,mpOnFloor,mpBegin,get MONX(){return MONX;},set MONX(v){MONX=v;},showWaypoints,trToggle,showPause,showAuPick,showBots,openPetCfg,mobSheetHide,showHelp,hideOverlay,killMon,coachGo,vqGet,bbPrune,BOT,botNew,botSpawn,bagTidy,tidyWeak,autoBest,stashOpen,ev5Fire,EV5,ev5Tick,evFire,HEV,evTick,netPack,netToSv,enterFloor,genItem,botNew,botCatchUp,botSpawn,botAI,botStart,botAutoGear,BOT,botSp,m3dEquip,AUPK_LIST,showAuPick,auPickOk,MSHR,LD,EXV,AU,w2s,SX:()=>SX,SY:()=>SY,M3D,auToggle,auTick,UI,mapRef:()=>({map,WD,FD,tint,deco,TILES}),GLP,los,snapCam,EXS,EXD,EXI,exStart,exAssign,MT,ICO,icoCv,ICM,s3Cast,WFX,wfxAt,SK,CLS,HPC,pondTick,pondAt,PND,coachGo,saveGame,loadSave,EV4,ev4Fire,explode,spawnProj,FX2,fx2Spr,fx2Painter,fx2FireSpr,EV3,ev3Fire,ev3Use,ev3Give,ev3SL,wxSet,wxLightning,get HD3ON(){return HD3ON;},set HD3ON(v){HD3ON=v;},galShot,AREAS,evFire,evTick,HEV,stalkTick,mpAvatar,ultDrop,ultDropItem,hurtPlayer,deathBlast,GX_ZONES,isWall,los,nearestFloor,AI,ACT,spawnCurse,summonAt,raiseHostile,poisonP,detonate,bossSpecial,AREAS,THEMES,MT,makeMon,spawnAll,genLevel,CLS,SK,BASES,UNIQ,SETS,BUFF,mkItem,swapWeapons,newPlayer,itemHTML,eqGet,eqSet,showClassSelect,G,get P(){return P;},startGame,update,render,castSkill,genItem,recalc,enterFloor,killMon,hudHit,drinkPot,activate,findHoverMon,addAlly,raiseAlly,necroSkill,useShrine,spawnExtras,updateAllies,showWaypoints,corpseNear,SHRINES,scoutToggle,warpToBoss,scoutCount,guardCount,chaosCast,convertCorpse,convCount,confMon,NET,showTitle,netPack,netToSv,netFlush};
+window.__dbg={netOnUser,mpEnter,mpStart,TR,MP,NET,trRender,mpTick,mpOnFloor,mpBegin,get MONX(){return MONX;},set MONX(v){MONX=v;},showWaypoints,trToggle,showPause,showAuPick,showBots,openPetCfg,mobSheetHide,showHelp,hideOverlay,killMon,coachGo,vqGet,bbPrune,BOT,botNew,botSpawn,bagTidy,tidyWeak,autoBest,stashOpen,ev5Fire,EV5,ev5Tick,evFire,HEV,evTick,netPack,netToSv,enterFloor,genItem,botNew,botCatchUp,botSpawn,botAI,botStart,botAutoGear,BOT,botSp,m3dEquip,AUPK_LIST,showAuPick,auPickOk,MSHR,LD,EXV,AU,w2s,SX:()=>SX,SY:()=>SY,M3D,auToggle,auTick,UI,mapRef:()=>({map,WD,FD,tint,deco,TILES}),GLP,los,snapCam,EXS,EXD,EXI,exStart,exAssign,MT,ICO,icoCv,ICM,s3Cast,WFX,wfxAt,SK,CLS,HPC,pondTick,pondAt,PND,coachGo,saveGame,loadSave,EV4,ev4Fire,explode,spawnProj,FX2,fx2Spr,fx2Painter,fx2FireSpr,EV3,ev3Fire,ev3Use,ev3Give,ev3SL,wxSet,wxLightning,get HD3ON(){return HD3ON;},set HD3ON(v){HD3ON=v;},galShot,AREAS,evFire,evTick,HEV,stalkTick,mpAvatar,ultDrop,ultDropItem,hurtPlayer,deathBlast,GX_ZONES,isWall,los,nearestFloor,AI,ACT,spawnCurse,summonAt,raiseHostile,poisonP,detonate,bossSpecial,AREAS,THEMES,MT,makeMon,spawnAll,genLevel,CLS,SK,BASES,UNIQ,SETS,BUFF,mkItem,swapWeapons,newPlayer,itemHTML,eqGet,eqSet,showClassSelect,G,get P(){return P;},startGame,update,render,castSkill,genItem,recalc,enterFloor,killMon,hudHit,drinkPot,activate,findHoverMon,addAlly,raiseAlly,necroSkill,useShrine,spawnExtras,updateAllies,showWaypoints,corpseNear,SHRINES,scoutToggle,warpToBoss,scoutCount,guardCount,chaosCast,convertCorpse,convCount,confMon,NET,showTitle,netPack,netToSv,netFlush};
 })();
 </script>
 </body>
