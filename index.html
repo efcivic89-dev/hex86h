@@ -1455,9 +1455,9 @@ function tidyWeak(it){
 function bagTidy(opt){
   opt=opt||{};if(!P||P.dead||!P.bag)return null;
   if(TR&&TR.open)return null;
-  stashEnsure();let sold=0,gold=0,moved=0;
+  stashEnsure();let sold=0,gold=0,moved=0;const panelOpen=!!(opt.quiet&&(UI.left||UI.right));
   for(let i=0;i<P.bag.length;i++){const it=P.bag[i];if(!it)continue;
-    if(opt.stash!==false&&TIDY_HI[it.rar]){const s=P.stash.indexOf(null);if(s>=0){P.stash[s]=it;P.bag[i]=null;moved++;}continue;}
+    if(opt.stash!==false&&!panelOpen&&TIDY_HI[it.rar]){const s=P.stash.indexOf(null);if(s>=0){P.stash[s]=it;P.bag[i]=null;moved++;}continue;}
     if(opt.sell!==false&&tidyWeak(it)){const pr=sellPrice(it);bbAdd(it,pr);gold+=pr;P.bag[i]=null;sold++;}}
   if(sold||moved){P.gold+=gold;UI.dirty=true;hideTip();if(sold)sfx('gold');else sfx('equip');
     if(!opt.quiet||sold>=3||moved)msg('整理: '+(sold?`売却${sold}個 +${gold}G`:'')+(sold&&moved?' ／ ':'')+(moved?`倉庫へ${moved}個`:''),'#ffe9a0');
@@ -14238,7 +14238,7 @@ function auTick(dt){
   if(UI.left==='shop'||G.shopOpen){UI.left=null;UI.right=false;G.shopOpen=false;UI.dirty=true;}
   auPotions();
   try{auSpend();}catch(e){}
-  if(G.t-(AU.tdT||0)>6){AU.tdT=G.t;try{if(AU.pk.equip!==0)autoBest(true);if(AU.pk.sell!==0||AU.pk.stash!==0)bagTidy({quiet:true,sell:AU.pk.sell!==0,stash:AU.pk.stash!==0});}catch(e){}}
+  if(G.t-(AU.tdT||0)>6){AU.tdT=G.t;try{if(AU.pk.equip!==0&&!(UI.left||UI.right))autoBest(true);if(AU.pk.sell!==0||AU.pk.stash!==0)bagTidy({quiet:true,sell:AU.pk.sell!==0,stash:AU.pk.stash!==0});}catch(e){}}
   /* 予兆回避 */
   const ob=AU.mode!=='fight'?auObjective():null;
   const dg=auDanger();
@@ -14944,7 +14944,7 @@ function galShot(kind,spec,cw,ch,scl,face,eq,cls){
   }finally{ctx=sv.ctx;P=sv.P;W=sv.W;H=sv.H;cam.x=sv.cx;cam.y=sv.cy;G.t=sv.t;}
   return c.toDataURL();
 }
-(function(){const v=document.createElement('div');v.id='bver';v.textContent='v108';v.style.cssText='position:fixed;left:4px;bottom:2px;z-index:99;font:10px sans-serif;color:#fff;opacity:.35;pointer-events:none';document.body.appendChild(v);})();
+(function(){const v=document.createElement('div');v.id='bver';v.textContent='v109';v.style.cssText='position:fixed;left:4px;bottom:2px;z-index:99;font:10px sans-serif;color:#fff;opacity:.35;pointer-events:none';document.body.appendChild(v);})();
 (function(){const seen={};window.addEventListener('error',e=>{try{const m=String(e.message||'').slice(0,160);if(!m||seen[m]||/ResizeObserver|Script error/i.test(m))return;seen[m]=1;if(Object.keys(seen).length>4)return;
   let b=document.getElementById('errbar');if(!b){b=document.createElement('div');b.id='errbar';b.style.cssText='position:fixed;left:6px;right:6px;bottom:6px;z-index:99;background:rgba(80,10,10,.92);color:#ffd8d0;border:1px solid #ff8a7a;border-radius:6px;padding:6px 10px;font:11px/1.4 sans-serif;word-break:break-all';b.addEventListener('click',()=>{b.style.display='none';});document.body.appendChild(b);}
   b.style.display='block';b.textContent='エラー: '+m+'（タップで閉じる）';}catch(x){}});})();
