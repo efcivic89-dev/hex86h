@@ -2170,7 +2170,7 @@ function enterFloor(f,opts){
   else{P.x=startRoom.cx;P.y=startRoom.cy;}
   P.target=null;P.god=1.5;mFkey=-1;pFkey=-1;G.mmDirty=true;
   for(const a of G.ally){const f=nearestFloor(P.x+rnd(-1.5,1.5),P.y+rnd(-1.5,1.5))||[P.x,P.y];a.x=f[0];a.y=f[1];a.tgt=null;a.wind=0;}
-  botSpawnAll();
+  try{botSpawnAll();}catch(e){window.__botErr=String(e&&e.stack||e);try{msg('ロボ仲間の呼び出しに失敗しました','#ff9d7a');}catch(x){}}
   UI.left=null;UI.right=false;UI.dirty=true;G.shopOpen=false;hideTip();
   if(MP.playing)mpOnFloor();
   updateVision();snapCam();saveGame();m3dPreload();ldStart();
@@ -2204,7 +2204,11 @@ function startGameUI(sv,maxMode,cls,after){
   G.prepOv=true;
   showOverlay('<div class="card" style="text-align:center;min-width:280px"><h2 style="margin-bottom:8px">冒険の準備をしています</h2><div style="font-size:30px;margin:6px 0;animation:spin 1.4s linear infinite;display:inline-block">⚙</div><p style="font-size:13px;color:#cdbf9f">マップを作り、仲間と敵を呼び出しています。<br>端末によって数秒〜数十秒かかります。そのままお待ちください。</p>'+who+'</div>');
   if(!document.getElementById('spincss')){const st=document.createElement('style');st.id='spincss';st.textContent='@keyframes spin{to{transform:rotate(360deg)}}';document.head.appendChild(st);}
-  const go=()=>{try{startGame(sv,maxMode,cls);if(after)after();}catch(e){G.prepOv=false;hideOverlay();throw e;}};
+  const go=()=>{try{startGame(sv,maxMode,cls);if(after)after();}catch(e){G.prepOv=false;try{console.error(e);}catch(x){}
+    const tx=String(e&&e.stack||e).split('\n').slice(0,4).join('\n');
+    showOverlay('<div class="card" style="max-width:560px"><h2 style="color:#ff8a7a">開始に失敗しました</h2><p style="font-size:12px">次の内容を開発者に伝えてください。</p><pre style="text-align:left;font-size:11px;white-space:pre-wrap;word-break:break-all;background:rgba(0,0,0,.4);padding:8px;border-radius:6px;user-select:all">'+nEsc(tx)+'</pre><div class="btns"><button class="btn" data-act="back">タイトルへ戻る</button></div></div>');
+    G.state='title';MP.playing=false;}};
+  setTimeout(()=>{if(G.prepOv&&G.state!=='play'){G.prepOv=false;showOverlay('<div class="card"><h2>開始に時間がかかっています</h2><p style="font-size:12px">画面が変わらない場合は、タイトルへ戻って、もう一度お試しください。</p><div class="btns"><button class="btn" data-act="back">タイトルへ戻る</button></div></div>');}},20000);
   if(typeof requestAnimationFrame==='function')requestAnimationFrame(()=>setTimeout(go,60));else setTimeout(go,60);
 }
 function startGame(sv,maxMode,cls){
@@ -10580,6 +10584,8 @@ void main(){
     Object.assign(GLP,{on:true,g,gl,pr,U,tS,tB,bl:false});
   }catch(e){GLP.fail=true;try{console.warn('GLP off',e&&e.message);}catch(_){}}
 }
+/* 読み込み画面は2Dキャンバスに描くので、その間だけWebGL面を隠す */
+function glpHide(on){try{if(!GLP.on||!GLP.g)return;const h=GLP.g.style.visibility==='hidden';if(on&&!h){GLP.g.style.visibility='hidden';cv.style.opacity='1';}else if(!on&&h){GLP.g.style.visibility='visible';cv.style.opacity='0';}}catch(e){}}
 function glpPresent(dt){
   if(!GLP.on)return;
   try{
@@ -13675,7 +13681,8 @@ function frame(ts){
    if(G.state==='play'&&A.t>1.2&&A.n>40&&!QLOCK){A.t=0;A.cd-=1.2;
      if(A.e>.045&&QS>.9&&A.cd<=0&&A.n>420){QS=Math.max(.9,+(QS-.1).toFixed(2));A.cd=12;A.n=0;resize();}
      else if(A.e>.04&&QS<=.8&&!window.__LOWFX&&A.n>420){window.__LOWFX=1;A.n=0;}}}
-  if(G.loading){ldStep();if(G.loading){ldDraw();try{if(!GLP.fail&&glpWant()){if(!GLP.on)glpInit();glpPresent(dt);}}catch(e){}if(G.prepOv){G.prepOv=false;hideOverlay();}return;}}
+  if(G.loading){ldStep();if(G.loading){glpHide(true);ldDraw();if(G.prepOv){G.prepOv=false;hideOverlay();}return;}}
+  glpHide(false);
   if(G.prepOv&&G.state==='play'){G.prepOv=false;hideOverlay();}
   if(G.state==='play'&&P&&!G.paused&&!G.loading){const _u0=performance.now();if(!P.dead){update(dt);G.ut=(G.ut||0)*.9+(performance.now()-_u0)*.1;}else{G.t+=dt;updateFx(dt);updateProj(dt);mpTick(dt);}}
   if(UI.dirty&&P)renderPanels();
@@ -14308,6 +14315,10 @@ function galShot(kind,spec,cw,ch,scl,face,eq,cls){
   }finally{ctx=sv.ctx;P=sv.P;W=sv.W;H=sv.H;cam.x=sv.cx;cam.y=sv.cy;G.t=sv.t;}
   return c.toDataURL();
 }
+(function(){const v=document.createElement('div');v.id='bver';v.textContent='v99';v.style.cssText='position:fixed;left:4px;bottom:2px;z-index:99;font:10px sans-serif;color:#fff;opacity:.35;pointer-events:none';document.body.appendChild(v);})();
+(function(){const seen={};window.addEventListener('error',e=>{try{const m=String(e.message||'').slice(0,160);if(!m||seen[m]||/ResizeObserver|Script error/i.test(m))return;seen[m]=1;if(Object.keys(seen).length>4)return;
+  let b=document.getElementById('errbar');if(!b){b=document.createElement('div');b.id='errbar';b.style.cssText='position:fixed;left:6px;right:6px;bottom:6px;z-index:99;background:rgba(80,10,10,.92);color:#ffd8d0;border:1px solid #ff8a7a;border-radius:6px;padding:6px 10px;font:11px/1.4 sans-serif;word-break:break-all';b.addEventListener('click',()=>{b.style.display='none';});document.body.appendChild(b);}
+  b.style.display='block';b.textContent='エラー: '+m+'（タップで閉じる）';}catch(x){}});})();
 window.__dbg={netOnUser,mpEnter,mpStart,TR,MP,NET,trRender,mpTick,mpOnFloor,mpBegin,get MONX(){return MONX;},set MONX(v){MONX=v;},showWaypoints,trToggle,showPause,showAuPick,showBots,openPetCfg,mobSheetHide,showHelp,hideOverlay,killMon,coachGo,vqGet,bbPrune,BOT,botNew,botSpawn,bagTidy,tidyWeak,autoBest,stashOpen,ev5Fire,EV5,ev5Tick,evFire,HEV,evTick,netPack,netToSv,enterFloor,genItem,botNew,botCatchUp,botSpawn,botAI,botStart,botAutoGear,BOT,botSp,m3dEquip,AUPK_LIST,showAuPick,auPickOk,MSHR,LD,EXV,AU,w2s,SX:()=>SX,SY:()=>SY,M3D,auToggle,auTick,UI,mapRef:()=>({map,WD,FD,tint,deco,TILES}),GLP,los,snapCam,EXS,EXD,EXI,exStart,exAssign,MT,ICO,icoCv,ICM,s3Cast,WFX,wfxAt,SK,CLS,HPC,pondTick,pondAt,PND,coachGo,saveGame,loadSave,EV4,ev4Fire,explode,spawnProj,FX2,fx2Spr,fx2Painter,fx2FireSpr,EV3,ev3Fire,ev3Use,ev3Give,ev3SL,wxSet,wxLightning,get HD3ON(){return HD3ON;},set HD3ON(v){HD3ON=v;},galShot,AREAS,evFire,evTick,HEV,stalkTick,mpAvatar,ultDrop,ultDropItem,hurtPlayer,deathBlast,GX_ZONES,isWall,los,nearestFloor,AI,ACT,spawnCurse,summonAt,raiseHostile,poisonP,detonate,bossSpecial,AREAS,THEMES,MT,makeMon,spawnAll,genLevel,CLS,SK,BASES,UNIQ,SETS,BUFF,mkItem,swapWeapons,newPlayer,itemHTML,eqGet,eqSet,showClassSelect,G,get P(){return P;},startGame,update,render,castSkill,genItem,recalc,enterFloor,killMon,hudHit,drinkPot,activate,findHoverMon,addAlly,raiseAlly,necroSkill,useShrine,spawnExtras,updateAllies,showWaypoints,corpseNear,SHRINES,scoutToggle,warpToBoss,scoutCount,guardCount,chaosCast,convertCorpse,convCount,confMon,NET,showTitle,netPack,netToSv,netFlush};
 })();
 </script>
