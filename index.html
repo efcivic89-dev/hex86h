@@ -2199,12 +2199,12 @@ function saveGame(){
 }
 function loadSave(){try{const r=localStorage.getItem(SAVEKEY);return r?JSON.parse(r):null;}catch(e){return null;}}
 /* 画面操作から冒険を始めるとき：重い準備の間も「準備中」の案内を出し続ける */
-function startGameUI(sv,maxMode,cls){
+function startGameUI(sv,maxMode,cls,after){
   let who='';try{botLoadLocal();const on=BOT.list.filter(r=>r.on);if(on.length&&botOk())who='<p style="font-size:13px;color:#7fe8d8">🤖 '+on.map(r=>botEsc(r.name)).join('・')+' を呼び出しています…</p>';}catch(e){}
   G.prepOv=true;
   showOverlay('<div class="card" style="text-align:center;min-width:280px"><h2 style="margin-bottom:8px">冒険の準備をしています</h2><div style="font-size:30px;margin:6px 0;animation:spin 1.4s linear infinite;display:inline-block">⚙</div><p style="font-size:13px;color:#cdbf9f">マップを作り、仲間と敵を呼び出しています。<br>端末によって数秒〜数十秒かかります。そのままお待ちください。</p>'+who+'</div>');
   if(!document.getElementById('spincss')){const st=document.createElement('style');st.id='spincss';st.textContent='@keyframes spin{to{transform:rotate(360deg)}}';document.head.appendChild(st);}
-  const go=()=>{try{startGame(sv,maxMode,cls);}catch(e){G.prepOv=false;hideOverlay();throw e;}};
+  const go=()=>{try{startGame(sv,maxMode,cls);if(after)after();}catch(e){G.prepOv=false;hideOverlay();throw e;}};
   if(typeof requestAnimationFrame==='function')requestAnimationFrame(()=>setTimeout(go,60));else setTimeout(go,60);
 }
 function startGame(sv,maxMode,cls){
@@ -13915,9 +13915,10 @@ function mpBegin(){
   const sv=netToSv(c,MP.charId);sv.floor=m.floor||1;sv.diff=m.diff||0;
   MP.monx0=MONX;if(MP.role==='guest'&&m.monx>=1&&m.monx<=10)MONX=m.monx;
   MP.playing=true;MP.first=false;MP.seenSeq=m.fseq|0;MP.allowEnter=true;MP.k=0;MP.eqSig='';MP.t={pl:0,ms:0,hit:0,dd:0,wake:0,hud:0,hurt:0,ally:0,heal:0};MP.hitQ={};MP.hq={};MP.healq={};MP.auAcc=0;MP.deadSet=new Set();MP.snap=null;MP.ddSnap=null;
-  NET.form=false;startGame(sv);mpHud();
-  if(m.cave){MP.allowEnter=true;enterFloor(m.floor||1,{cave:true});}
-  msg(MP.role==='host'?'協力プレイを開始しました（あなたがホスト）':'ホストのダンジョンに参加しました','#8fd0a0');
+  NET.form=false;
+  startGameUI(sv,false,undefined,()=>{mpHud();
+    if(m.cave){MP.allowEnter=true;enterFloor(m.floor||1,{cave:true});}
+    msg(MP.role==='host'?'協力プレイを開始しました（あなたがホスト）':'ホストのダンジョンに参加しました','#8fd0a0');});
 }
 function mpOnFloor(){
   MP.nmap=new Map();G.mon.forEach((m,i)=>{m.nid=i;MP.nmap.set(i,m);});MP.nextNid=G.mon.length;MP.deadSet=new Set();MP.snap=null;MP.ddSnap=null;MP.al={};
