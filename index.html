@@ -11186,7 +11186,7 @@ function invHTML(){
   return `<div class="ptitle"><span>装備</span><span class="x" data-act="close">×</span></div>
   ${eqWhoBar()}
   <div class="row"><span>金貨</span><span class="pt">${P.gold}G</span><span><button class="plus" style="width:auto;padding:0 8px;margin:0" data-act="petcfg">🕯 ペット設定${MOB.on?'':' [O]'}</button></span></div>
-  <div class="eqtb"><button class="eqb best" data-act="autobest">⚔ 最強装備</button><button class="eqb" data-act="autotidy">🪙 自動売却・整理</button>${G.shopOpen?`<button class="eqb ${UI.sellMode?'on':''}" data-act="sellmode">💰 タップ売却 ${UI.sellMode?'ON':'OFF'}</button>`:''}</div>
+  <div class="eqtb"><button class="eqb best" data-act="autobest">⚔ 最強装備</button><button class="eqb" data-act="autotidy">🪙 売却・倉庫へ整理</button>${G.shopOpen?`<button class="eqb ${UI.sellMode?'on':''}" data-act="sellmode">💰 タップ売却 ${UI.sellMode?'ON':'OFF'}</button>`:''}</div>
   <div class="eqL">
   <div class="dollx"><div class="dcol l">${L}</div>
     <div class="dmid">${pu?`<img class="port" src="${pu}" alt="" draggable="false">`:''}<div class="dcn">${(CLS[P.cls]||CLS.warrior).n}　Lv ${P.lvl}</div><div class="dalt"><small>予備セット(X)</small>${alt('altw')}${alt('alts')}</div></div>
@@ -14238,7 +14238,7 @@ function auTick(dt){
   if(UI.left==='shop'||G.shopOpen){UI.left=null;UI.right=false;G.shopOpen=false;UI.dirty=true;}
   auPotions();
   try{auSpend();}catch(e){}
-  if(G.t-(AU.tdT||0)>6){AU.tdT=G.t;try{if(AU.pk.equip!==0&&!(UI.left||UI.right))autoBest(true);if(AU.pk.sell!==0||AU.pk.stash!==0)bagTidy({quiet:true,sell:AU.pk.sell!==0,stash:AU.pk.stash!==0});}catch(e){}}
+  if(G.t-(AU.tdT||0)>6){AU.tdT=G.t;try{if(AU.pk.equip!==0&&!(UI.left||UI.right))autoBest(true);}catch(e){}}
   /* 予兆回避 */
   const ob=AU.mode!=='fight'?auObjective():null;
   const dg=auDanger();
@@ -14944,7 +14944,7 @@ function galShot(kind,spec,cw,ch,scl,face,eq,cls){
   }finally{ctx=sv.ctx;P=sv.P;W=sv.W;H=sv.H;cam.x=sv.cx;cam.y=sv.cy;G.t=sv.t;}
   return c.toDataURL();
 }
-(function(){const v=document.createElement('div');v.id='bver';v.textContent='v109';v.style.cssText='position:fixed;left:4px;bottom:2px;z-index:99;font:10px sans-serif;color:#fff;opacity:.35;pointer-events:none';document.body.appendChild(v);})();
+(function(){const v=document.createElement('div');v.id='bver';v.textContent='v110';v.style.cssText='position:fixed;left:4px;bottom:2px;z-index:99;font:10px sans-serif;color:#fff;opacity:.35;pointer-events:none';document.body.appendChild(v);})();
 (function(){const seen={};window.addEventListener('error',e=>{try{const m=String(e.message||'').slice(0,160);if(!m||seen[m]||/ResizeObserver|Script error/i.test(m))return;seen[m]=1;if(Object.keys(seen).length>4)return;
   let b=document.getElementById('errbar');if(!b){b=document.createElement('div');b.id='errbar';b.style.cssText='position:fixed;left:6px;right:6px;bottom:6px;z-index:99;background:rgba(80,10,10,.92);color:#ffd8d0;border:1px solid #ff8a7a;border-radius:6px;padding:6px 10px;font:11px/1.4 sans-serif;word-break:break-all';b.addEventListener('click',()=>{b.style.display='none';});document.body.appendChild(b);}
   b.style.display='block';b.textContent='エラー: '+m+'（タップで閉じる）';}catch(x){}});})();
